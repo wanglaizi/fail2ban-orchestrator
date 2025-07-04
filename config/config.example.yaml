@@ -1,0 +1,172 @@
+# 分布式Fail2ban系统配置文件
+
+# 系统基础配置
+system:
+  # 系统模式: central(中央节点), agent(日志收集代理), executor(封禁执行节点)
+  mode: "central"
+  # 节点ID，用于标识不同的节点
+  node_id: "central-001"
+  # 日志级别: DEBUG, INFO, WARNING, ERROR
+  log_level: "INFO"
+  # 日志文件路径
+  log_file: "/var/log/fail2ban-distributed/system.log"
+
+# 中央控制节点配置
+central:
+  # API服务配置
+  api:
+    host: "0.0.0.0"
+    port: 8080
+    # API密钥，用于节点间通信认证
+    api_key: "your-secret-api-key-here"
+  
+  # WebSocket配置
+  websocket:
+    host: "0.0.0.0"
+    port: 8081
+  
+  # 数据库配置
+  database:
+    # Redis配置
+    redis:
+      host: "localhost"
+      port: 6379
+      password: ""
+      db: 0
+    
+    # MongoDB配置
+    mongodb:
+      host: "localhost"
+      port: 27017
+      database: "fail2ban_distributed"
+      username: ""
+      password: ""
+
+# 日志收集代理配置
+agent:
+  # 中央节点地址
+  central_server:
+    host: "central.example.com"
+    port: 8080
+    api_key: "your-secret-api-key-here"
+  
+  # Nginx日志配置
+  nginx:
+    # 访问日志路径
+    access_log: "/var/log/nginx/access.log"
+    # 错误日志路径
+    error_log: "/var/log/nginx/error.log"
+    # 日志格式
+    log_format: "combined"
+  
+  # 日志发送配置
+  sender:
+    # 批量发送大小
+    batch_size: 100
+    # 发送间隔(秒)
+    interval: 5
+    # 重试次数
+    retry_count: 3
+
+# 封禁执行节点配置
+executor:
+  # 中央节点地址
+  central_server:
+    host: "central.example.com"
+    port: 8080
+    api_key: "your-secret-api-key-here"
+  
+  # Fail2ban配置
+  fail2ban:
+    # fail2ban配置文件路径
+    config_path: "/etc/fail2ban"
+    # jail配置文件
+    jail_config: "/etc/fail2ban/jail.d/distributed.conf"
+    # 动作配置
+    action_config: "/etc/fail2ban/action.d/distributed.conf"
+
+# 分析规则配置
+analysis:
+  # IP封禁规则
+  ban_rules:
+    # 404错误阈值
+    not_found_threshold: 20
+    # 时间窗口(分钟)
+    time_window: 10
+    # 封禁时长(分钟)
+    ban_duration: 60
+    # 最大封禁时长(小时)
+    max_ban_duration: 24
+  
+  # 攻击模式检测
+  attack_patterns:
+    # SQL注入检测
+    sql_injection:
+      enabled: true
+      patterns:
+        - "union.*select"
+        - "drop.*table"
+        - "insert.*into"
+    
+    # XSS检测
+    xss:
+      enabled: true
+      patterns:
+        - "<script"
+        - "javascript:"
+        - "onerror="
+    
+    # 路径遍历检测
+    path_traversal:
+      enabled: true
+      patterns:
+        - "\.\./"
+        - "\\.\\.\\"  
+
+# 白名单配置
+whitelist:
+  # IP白名单
+  ips:
+    - "127.0.0.1"
+    - "::1"
+    # 添加你的管理IP
+    # - "your.admin.ip.here"
+  
+  # 网段白名单
+  networks:
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+    - "192.168.0.0/16"
+
+# 通知配置
+notification:
+  # 邮件通知
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: "alert@example.com"
+    password: "your-email-password"
+    to_addresses:
+      - "admin@example.com"
+  
+  # 钉钉通知
+  dingtalk:
+    enabled: false
+    webhook_url: "https://oapi.dingtalk.com/robot/send?access_token=your-token"
+  
+  # 企业微信通知
+  wechat:
+    enabled: false
+    webhook_url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key"
+
+# 性能配置
+performance:
+  # 工作进程数
+  worker_processes: 4
+  # 队列大小
+  queue_size: 10000
+  # 内存限制(MB)
+  memory_limit: 512
+  # 日志保留天数
+  log_retention_days: 30

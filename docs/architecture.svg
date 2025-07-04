@@ -1,0 +1,244 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 16px; fill: #34495e; }
+      .node-title { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #2c3e50; }
+      .node-text { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .network-label { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #e74c3c; }
+      .arrow { stroke: #3498db; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .data-flow { stroke: #e67e22; stroke-width: 2; fill: none; marker-end: url(#arrowhead); stroke-dasharray: 5,5; }
+      .central-box { fill: #3498db; stroke: #2980b9; stroke-width: 2; rx: 10; }
+      .agent-box { fill: #2ecc71; stroke: #27ae60; stroke-width: 2; rx: 8; }
+      .executor-box { fill: #e74c3c; stroke: #c0392b; stroke-width: 2; rx: 8; }
+      .web-box { fill: #9b59b6; stroke: #8e44ad; stroke-width: 2; rx: 8; }
+      .database-box { fill: #f39c12; stroke: #e67e22; stroke-width: 2; rx: 8; }
+      .network-box { fill: #ecf0f1; stroke: #bdc3c7; stroke-width: 2; rx: 5; stroke-dasharray: 3,3; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3498db" />
+    </marker>
+  </defs>
+  
+  <!-- 标题 -->
+  <text x="600" y="30" text-anchor="middle" class="title">Fail2ban分布式系统架构图</text>
+  <text x="600" y="55" text-anchor="middle" class="subtitle">Distributed Fail2ban System Architecture</text>
+  
+  <!-- 中央控制区域 -->
+  <rect x="450" y="80" width="300" height="180" class="central-box" />
+  <text x="600" y="105" text-anchor="middle" class="node-title" fill="white">中央控制节点 (Central Node)</text>
+  
+  <!-- 中央控制组件 -->
+  <rect x="470" y="120" width="80" height="40" fill="#2980b9" rx="5" />
+  <text x="510" y="135" text-anchor="middle" class="node-text" fill="white">API服务</text>
+  <text x="510" y="150" text-anchor="middle" class="node-text" fill="white">5000端口</text>
+  
+  <rect x="560" y="120" width="80" height="40" fill="#2980b9" rx="5" />
+  <text x="600" y="135" text-anchor="middle" class="node-text" fill="white">WebSocket</text>
+  <text x="600" y="150" text-anchor="middle" class="node-text" fill="white">5001端口</text>
+  
+  <rect x="650" y="120" width="80" height="40" fill="#2980b9" rx="5" />
+  <text x="690" y="135" text-anchor="middle" class="node-text" fill="white">攻击检测</text>
+  <text x="690" y="150" text-anchor="middle" class="node-text" fill="white">分析引擎</text>
+  
+  <rect x="470" y="170" width="80" height="40" fill="#2980b9" rx="5" />
+  <text x="510" y="185" text-anchor="middle" class="node-text" fill="white">封禁策略</text>
+  <text x="510" y="200" text-anchor="middle" class="node-text" fill="white">管理器</text>
+  
+  <rect x="560" y="170" width="80" height="40" fill="#2980b9" rx="5" />
+  <text x="600" y="185" text-anchor="middle" class="node-text" fill="white">节点协调</text>
+  <text x="600" y="200" text-anchor="middle" class="node-text" fill="white">调度器</text>
+  
+  <rect x="650" y="170" width="80" height="40" fill="#2980b9" rx="5" />
+  <text x="690" y="185" text-anchor="middle" class="node-text" fill="white">通知系统</text>
+  <text x="690" y="200" text-anchor="middle" class="node-text" fill="white">告警中心</text>
+  
+  <!-- 数据库区域 -->
+  <rect x="800" y="80" width="120" height="80" class="database-box" />
+  <text x="860" y="105" text-anchor="middle" class="node-title">数据存储</text>
+  <rect x="810" y="115" width="45" height="35" fill="#e67e22" rx="3" />
+  <text x="832" y="130" text-anchor="middle" class="node-text" fill="white">Redis</text>
+  <text x="832" y="142" text-anchor="middle" class="node-text" fill="white">缓存</text>
+  <rect x="865" y="115" width="45" height="35" fill="#e67e22" rx="3" />
+  <text x="887" y="130" text-anchor="middle" class="node-text" fill="white">MongoDB</text>
+  <text x="887" y="142" text-anchor="middle" class="node-text" fill="white">存储</text>
+  
+  <rect x="800" y="180" width="120" height="80" class="web-box" />
+  <text x="860" y="205" text-anchor="middle" class="node-title" fill="white">Web管理界面</text>
+  <rect x="810" y="215" width="100" height="35" fill="#8e44ad" rx="3" />
+  <text x="860" y="230" text-anchor="middle" class="node-text" fill="white">实时监控面板</text>
+  <text x="860" y="242" text-anchor="middle" class="node-text" fill="white">8080端口</text>
+  
+  <!-- 三网环境 -->
+  <rect x="50" y="300" width="350" height="220" class="network-box" />
+  <text x="225" y="325" text-anchor="middle" class="network-label">三网环境 (Three-Network Environment)</text>
+  
+  <!-- 电信网络 -->
+  <rect x="70" y="340" width="90" height="150" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1" rx="5" />
+  <text x="115" y="360" text-anchor="middle" class="node-text">电信网络</text>
+  
+  <rect x="80" y="370" width="70" height="30" class="agent-box" />
+  <text x="115" y="385" text-anchor="middle" class="node-text" fill="white">代理节点</text>
+  <text x="115" y="395" text-anchor="middle" class="node-text" fill="white">Agent-1</text>
+  
+  <rect x="80" y="410" width="70" height="30" class="executor-box" />
+  <text x="115" y="425" text-anchor="middle" class="node-text" fill="white">执行节点</text>
+  <text x="115" y="435" text-anchor="middle" class="node-text" fill="white">Executor-1</text>
+  
+  <rect x="80" y="450" width="70" height="30" fill="#34495e" rx="3" />
+  <text x="115" y="465" text-anchor="middle" class="node-text" fill="white">Nginx服务器</text>
+  <text x="115" y="475" text-anchor="middle" class="node-text" fill="white">Web Server</text>
+  
+  <!-- 联通网络 -->
+  <rect x="180" y="340" width="90" height="150" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1" rx="5" />
+  <text x="225" y="360" text-anchor="middle" class="node-text">联通网络</text>
+  
+  <rect x="190" y="370" width="70" height="30" class="agent-box" />
+  <text x="225" y="385" text-anchor="middle" class="node-text" fill="white">代理节点</text>
+  <text x="225" y="395" text-anchor="middle" class="node-text" fill="white">Agent-2</text>
+  
+  <rect x="190" y="410" width="70" height="30" class="executor-box" />
+  <text x="225" y="425" text-anchor="middle" class="node-text" fill="white">执行节点</text>
+  <text x="225" y="435" text-anchor="middle" class="node-text" fill="white">Executor-2</text>
+  
+  <rect x="190" y="450" width="70" height="30" fill="#34495e" rx="3" />
+  <text x="225" y="465" text-anchor="middle" class="node-text" fill="white">Nginx服务器</text>
+  <text x="225" y="475" text-anchor="middle" class="node-text" fill="white">Web Server</text>
+  
+  <!-- 移动网络 -->
+  <rect x="290" y="340" width="90" height="150" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1" rx="5" />
+  <text x="335" y="360" text-anchor="middle" class="node-text">移动网络</text>
+  
+  <rect x="300" y="370" width="70" height="30" class="agent-box" />
+  <text x="335" y="385" text-anchor="middle" class="node-text" fill="white">代理节点</text>
+  <text x="335" y="395" text-anchor="middle" class="node-text" fill="white">Agent-3</text>
+  
+  <rect x="300" y="410" width="70" height="30" class="executor-box" />
+  <text x="335" y="425" text-anchor="middle" class="node-text" fill="white">执行节点</text>
+  <text x="335" y="435" text-anchor="middle" class="node-text" fill="white">Executor-3</text>
+  
+  <rect x="300" y="450" width="70" height="30" fill="#34495e" rx="3" />
+  <text x="335" y="465" text-anchor="middle" class="node-text" fill="white">Nginx服务器</text>
+  <text x="335" y="475" text-anchor="middle" class="node-text" fill="white">Web Server</text>
+  
+  <!-- 海外环境 -->
+  <rect x="800" y="300" width="350" height="220" class="network-box" />
+  <text x="975" y="325" text-anchor="middle" class="network-label">海外环境 (Overseas Environment)</text>
+  
+  <!-- 美国服务器 -->
+  <rect x="820" y="340" width="90" height="150" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1" rx="5" />
+  <text x="865" y="360" text-anchor="middle" class="node-text">美国服务器</text>
+  
+  <rect x="830" y="370" width="70" height="30" class="agent-box" />
+  <text x="865" y="385" text-anchor="middle" class="node-text" fill="white">代理节点</text>
+  <text x="865" y="395" text-anchor="middle" class="node-text" fill="white">Agent-US</text>
+  
+  <rect x="830" y="410" width="70" height="30" class="executor-box" />
+  <text x="865" y="425" text-anchor="middle" class="node-text" fill="white">执行节点</text>
+  <text x="865" y="435" text-anchor="middle" class="node-text" fill="white">Executor-US</text>
+  
+  <rect x="830" y="450" width="70" height="30" fill="#34495e" rx="3" />
+  <text x="865" y="465" text-anchor="middle" class="node-text" fill="white">Nginx服务器</text>
+  <text x="865" y="475" text-anchor="middle" class="node-text" fill="white">Web Server</text>
+  
+  <!-- 欧洲服务器 -->
+  <rect x="930" y="340" width="90" height="150" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1" rx="5" />
+  <text x="975" y="360" text-anchor="middle" class="node-text">欧洲服务器</text>
+  
+  <rect x="940" y="370" width="70" height="30" class="agent-box" />
+  <text x="975" y="385" text-anchor="middle" class="node-text" fill="white">代理节点</text>
+  <text x="975" y="395" text-anchor="middle" class="node-text" fill="white">Agent-EU</text>
+  
+  <rect x="940" y="410" width="70" height="30" class="executor-box" />
+  <text x="975" y="425" text-anchor="middle" class="node-text" fill="white">执行节点</text>
+  <text x="975" y="435" text-anchor="middle" class="node-text" fill="white">Executor-EU</text>
+  
+  <rect x="940" y="450" width="70" height="30" fill="#34495e" rx="3" />
+  <text x="975" y="465" text-anchor="middle" class="node-text" fill="white">Nginx服务器</text>
+  <text x="975" y="475" text-anchor="middle" class="node-text" fill="white">Web Server</text>
+  
+  <!-- 亚太服务器 -->
+  <rect x="1040" y="340" width="90" height="150" fill="#ecf0f1" stroke="#95a5a6" stroke-width="1" rx="5" />
+  <text x="1085" y="360" text-anchor="middle" class="node-text">亚太服务器</text>
+  
+  <rect x="1050" y="370" width="70" height="30" class="agent-box" />
+  <text x="1085" y="385" text-anchor="middle" class="node-text" fill="white">代理节点</text>
+  <text x="1085" y="395" text-anchor="middle" class="node-text" fill="white">Agent-AP</text>
+  
+  <rect x="1050" y="410" width="70" height="30" class="executor-box" />
+  <text x="1085" y="425" text-anchor="middle" class="node-text" fill="white">执行节点</text>
+  <text x="1085" y="435" text-anchor="middle" class="node-text" fill="white">Executor-AP</text>
+  
+  <rect x="1050" y="450" width="70" height="30" fill="#34495e" rx="3" />
+  <text x="1085" y="465" text-anchor="middle" class="node-text" fill="white">Nginx服务器</text>
+  <text x="1085" y="475" text-anchor="middle" class="node-text" fill="white">Web Server</text>
+  
+  <!-- 数据流向箭头 -->
+  <!-- 代理节点到中央控制 -->
+  <path d="M 150 385 Q 300 300 450 170" class="data-flow" />
+  <path d="M 260 385 Q 350 300 450 170" class="data-flow" />
+  <path d="M 370 385 Q 400 300 450 170" class="data-flow" />
+  <path d="M 900 385 Q 700 300 750 170" class="data-flow" />
+  <path d="M 1010 385 Q 800 300 750 170" class="data-flow" />
+  <path d="M 1120 385 Q 900 300 750 170" class="data-flow" />
+  
+  <!-- 中央控制到执行节点 -->
+  <path d="M 450 200 Q 300 280 150 425" class="arrow" />
+  <path d="M 450 200 Q 350 280 260 425" class="arrow" />
+  <path d="M 450 200 Q 400 280 370 425" class="arrow" />
+  <path d="M 750 200 Q 700 280 900 425" class="arrow" />
+  <path d="M 750 200 Q 800 280 1010 425" class="arrow" />
+  <path d="M 750 200 Q 900 280 1120 425" class="arrow" />
+  
+  <!-- 中央控制到数据库 -->
+  <path d="M 750 120 L 800 120" class="arrow" />
+  
+  <!-- 中央控制到Web界面 -->
+  <path d="M 750 220 L 800 220" class="arrow" />
+  
+  <!-- 数据流说明 -->
+  <rect x="450" y="550" width="300" height="200" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5" />
+  <text x="600" y="575" text-anchor="middle" class="node-title">数据流向说明</text>
+  
+  <line x1="470" y1="590" x2="490" y2="590" class="data-flow" />
+  <text x="500" y="595" class="node-text">日志数据流 (代理节点 → 中央控制)</text>
+  
+  <line x1="470" y1="610" x2="490" y2="610" class="arrow" />
+  <text x="500" y="615" class="node-text">控制指令流 (中央控制 → 执行节点)</text>
+  
+  <text x="470" y="635" class="node-text">• 代理节点实时监控Nginx日志</text>
+  <text x="470" y="650" class="node-text">• 解析日志并发送到中央控制节点</text>
+  <text x="470" y="665" class="node-text">• 中央节点分析攻击模式和风险</text>
+  <text x="470" y="680" class="node-text">• 生成封禁指令发送到执行节点</text>
+  <text x="470" y="695" class="node-text">• 执行节点调用Fail2ban执行封禁</text>
+  <text x="470" y="710" class="node-text">• Web界面提供实时监控和管理</text>
+  <text x="470" y="725" class="node-text">• 支持手动封禁和白名单管理</text>
+  
+  <!-- 图例 -->
+  <rect x="50" y="550" width="350" height="200" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1" rx="5" />
+  <text x="225" y="575" text-anchor="middle" class="node-title">组件图例</text>
+  
+  <rect x="70" y="590" width="60" height="25" class="central-box" />
+  <text x="140" y="605" class="node-text">中央控制节点</text>
+  
+  <rect x="70" y="620" width="60" height="25" class="agent-box" />
+  <text x="140" y="635" class="node-text">日志收集代理</text>
+  
+  <rect x="70" y="650" width="60" height="25" class="executor-box" />
+  <text x="140" y="665" class="node-text">封禁执行节点</text>
+  
+  <rect x="70" y="680" width="60" height="25" class="web-box" />
+  <text x="140" y="695" class="node-text">Web管理界面</text>
+  
+  <rect x="70" y="710" width="60" height="25" class="database-box" />
+  <text x="140" y="725" class="node-text">数据存储</text>
+  
+  <rect x="220" y="590" width="60" height="25" fill="#34495e" rx="3" />
+  <text x="290" y="605" class="node-text">Nginx Web服务器</text>
+  
+  <rect x="220" y="620" width="150" height="25" class="network-box" />
+  <text x="295" y="635" class="node-text">网络环境边界</text>
+  
+  <!-- 版权信息 -->
+  <text x="600" y="780" text-anchor="middle" class="node-text">Fail2ban分布式系统 v1.0 - 支持多网络环境的智能入侵防护系统</text>
+</svg>

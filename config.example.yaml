@@ -1,0 +1,385 @@
+# Fail2ban分布式系统配置文件示例
+# 复制此文件为config.yaml并根据实际环境修改配置
+
+# 系统基础配置
+system:
+  # 运行模式: central(中央控制), agent(日志收集代理), executor(封禁执行), all(全功能)
+  mode: "central"
+  
+  # 日志级别: DEBUG, INFO, WARNING, ERROR
+  log_level: "INFO"
+  
+  # 日志文件路径
+  log_file: "/var/log/fail2ban-distributed/system.log"
+  
+  # 进程ID文件
+  pid_file: "/var/run/fail2ban-distributed.pid"
+  
+  # API密钥 (用于节点间通信认证)
+  api_key: "your-secure-api-key-here"
+  
+  # 加密密钥 (用于数据加密)
+  secret_key: "your-secret-key-here"
+
+# 中央控制节点配置
+central:
+  # API服务配置
+  api:
+    host: "0.0.0.0"
+    port: 5000
+    ssl_enabled: false
+    ssl_cert: "/path/to/cert.pem"
+    ssl_key: "/path/to/key.pem"
+    
+  # WebSocket服务配置
+  websocket:
+    host: "0.0.0.0"
+    port: 5001
+    ssl_enabled: false
+    ssl_cert: "/path/to/cert.pem"
+    ssl_key: "/path/to/key.pem"
+  
+  # 数据库配置
+  database:
+    # Redis配置 (用于缓存和实时数据)
+    redis:
+      host: "localhost"
+      port: 6379
+      password: ""
+      db: 0
+      max_connections: 50
+      connection_pool_size: 10
+      socket_timeout: 5
+      socket_connect_timeout: 5
+    
+    # MongoDB配置 (用于持久化存储)
+    mongodb:
+      host: "localhost"
+      port: 27017
+      database: "fail2ban_distributed"
+      username: ""
+      password: ""
+      max_pool_size: 20
+      min_pool_size: 2
+      max_idle_time_ms: 30000
+      server_selection_timeout_ms: 5000
+  
+  # 封禁策略配置
+  ban_policy:
+    # 默认封禁时间 (秒)
+    default_ban_time: 3600
+    
+    # 最大封禁时间 (秒)
+    max_ban_time: 86400
+    
+    # 递增封禁时间倍数
+    ban_time_increment: 2
+    
+    # 风险评分阈值
+    risk_threshold: 80
+    
+    # 攻击次数阈值
+    attack_threshold: 5
+    
+    # 时间窗口 (秒)
+    time_window: 600
+    
+    # 白名单IP列表
+    whitelist:
+      - "127.0.0.1"
+      - "::1"
+      - "192.168.0.0/16"
+      - "10.0.0.0/8"
+      - "172.16.0.0/12"
+
+# 日志收集代理配置
+agent:
+  # 中央服务器地址
+  central_server:
+    host: "central-server-ip"
+    port: 5000
+    ssl_enabled: false
+  
+  # 日志监控配置
+  log_monitor:
+    # 要监控的日志文件路径列表
+    log_paths:
+      - "/var/log/nginx/access.log"
+      - "/var/log/nginx/error.log"
+      - "/var/log/apache2/access.log"
+      - "/var/log/apache2/error.log"
+    
+    # 日志格式 (nginx_combined, nginx_common, apache_combined, apache_common, custom)
+    log_format: "nginx_combined"
+    
+    # 自定义日志格式 (当log_format为custom时使用)
+    custom_format: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"'
+    
+    # 文件监控间隔 (秒)
+    check_interval: 1
+    
+    # 批处理大小
+    batch_size: 100
+  
+  # 数据发送配置
+  sender:
+    # 发送间隔 (秒)
+    send_interval: 10
+    
+    # 最大队列大小
+    max_queue_size: 5000
+    
+    # 重试次数
+    retry_attempts: 3
+    
+    # 重试间隔 (秒)
+    retry_interval: 5
+    
+    # 启用压缩
+    compression: true
+    
+    # 连接超时 (秒)
+    timeout: 30
+
+# 封禁执行节点配置
+executor:
+  # 中央服务器地址
+  central_server:
+    host: "central-server-ip"
+    port: 5000
+    ssl_enabled: false
+  
+  # Fail2ban配置
+  fail2ban:
+    # Fail2ban客户端路径
+    client_path: "/usr/bin/fail2ban-client"
+    
+    # 监狱名称
+    jail_name: "distributed-ban"
+    
+    # 配置文件路径
+    config_path: "/etc/fail2ban"
+    
+    # 动作名称
+    action_name: "distributed-action"
+  
+  # 执行器配置
+  execution:
+    # 执行超时 (秒)
+    timeout: 30
+    
+    # 最大并发执行数
+    max_concurrent: 10
+    
+    # 状态检查间隔 (秒)
+    status_check_interval: 60
+    
+    # 心跳间隔 (秒)
+    heartbeat_interval: 30
+
+# Web管理界面配置
+web:
+  # 服务配置
+  server:
+    host: "0.0.0.0"
+    port: 8080
+    ssl_enabled: false
+    ssl_cert: "/path/to/cert.pem"
+    ssl_key: "/path/to/key.pem"
+  
+  # 认证配置
+  auth:
+    # 启用认证
+    enabled: true
+    
+    # 用户名
+    username: "admin"
+    
+    # 密码 (建议使用强密码)
+    password: "your-secure-password"
+    
+    # 会话超时 (秒)
+    session_timeout: 3600
+  
+  # 界面配置
+  ui:
+    # 页面标题
+    title: "Fail2ban分布式管理系统"
+    
+    # 刷新间隔 (秒)
+    refresh_interval: 30
+    
+    # 每页显示条数
+    page_size: 50
+
+# 通知配置
+notifications:
+  # 邮件通知
+  email:
+    enabled: false
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: "your-email@example.com"
+    password: "your-email-password"
+    from_email: "fail2ban@example.com"
+    to_emails:
+      - "admin@example.com"
+      - "security@example.com"
+    use_tls: true
+    
+  # 钉钉通知
+  dingtalk:
+    enabled: false
+    webhook_url: "https://oapi.dingtalk.com/robot/send?access_token=your-token"
+    secret: "your-secret"
+    
+  # 微信通知
+  wechat:
+    enabled: false
+    webhook_url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key"
+    
+  # Slack通知
+  slack:
+    enabled: false
+    webhook_url: "https://hooks.slack.com/services/your/webhook/url"
+    channel: "#security"
+    username: "Fail2ban Bot"
+    
+  # 通知设置
+  settings:
+    # 通知级别: INFO, WARNING, ERROR
+    level: "WARNING"
+    
+    # 速率限制 (每小时最大通知数)
+    rate_limit: 10
+    
+    # 静默时间 (秒)
+    quiet_time: 300
+
+# 攻击检测配置
+detection:
+  # 模式检测
+  patterns:
+    # 启用的攻击类型
+    enabled_types:
+      - "sql_injection"
+      - "xss"
+      - "path_traversal"
+      - "command_injection"
+      - "file_inclusion"
+      - "scanner"
+      - "brute_force"
+    
+    # 自定义模式
+    custom_patterns:
+      # 示例: 检测特定的恶意路径
+      malicious_paths:
+        - "/admin/config.php"
+        - "/wp-admin/admin-ajax.php"
+        - "/.env"
+        - "/config/database.yml"
+  
+  # 频率检测
+  frequency:
+    # 高频请求检测
+    high_frequency:
+      # 时间窗口 (秒)
+      window: 60
+      # 请求阈值
+      threshold: 100
+    
+    # 404错误检测
+    error_404:
+      # 时间窗口 (秒)
+      window: 300
+      # 错误阈值
+      threshold: 20
+      # 错误率阈值 (%)
+      rate_threshold: 50
+    
+    # 扫描行为检测
+    scanning:
+      # 时间窗口 (秒)
+      window: 600
+      # 不同路径阈值
+      path_threshold: 50
+      # 敏感路径阈值
+      sensitive_threshold: 10
+  
+  # 高级检测
+  advanced:
+    # User-Agent分析
+    user_agent:
+      # 检测可疑工具
+      detect_tools: true
+      # 检测格式错误的UA
+      detect_malformed: true
+    
+    # 请求时间分析
+    timing:
+      # 检测规律性间隔
+      detect_regular_intervals: true
+      # 间隔容差 (秒)
+      interval_tolerance: 2
+    
+    # 载荷分析
+    payload:
+      # 最大URI长度
+      max_uri_length: 2048
+      # 编码检测阈值
+      encoding_threshold: 3
+      # 特殊字符密度阈值 (%)
+      special_char_threshold: 30
+
+# 性能配置
+performance:
+  # 内存限制
+  memory:
+    # 最大内存使用 (MB)
+    max_usage: 512
+    # 清理间隔 (秒)
+    cleanup_interval: 3600
+  
+  # 缓存配置
+  cache:
+    # IP分析缓存大小
+    ip_analysis_size: 10000
+    # 模式检测缓存大小
+    pattern_cache_size: 5000
+    # 缓存过期时间 (秒)
+    expire_time: 1800
+  
+  # 并发配置
+  concurrency:
+    # 工作线程数
+    worker_threads: 4
+    # 最大并发连接数
+    max_connections: 100
+    # 队列大小
+    queue_size: 1000
+
+# 安全配置
+security:
+  # 访问控制
+  access_control:
+    # 允许的IP列表
+    allowed_ips:
+      - "127.0.0.1"
+      - "192.168.0.0/16"
+    
+    # 拒绝的IP列表
+    denied_ips: []
+  
+  # 速率限制
+  rate_limiting:
+    # API请求限制 (每分钟)
+    api_requests: 60
+    # 登录尝试限制 (每小时)
+    login_attempts: 10
+  
+  # 加密配置
+  encryption:
+    # 算法
+    algorithm: "AES-256-GCM"
+    # 密钥轮换间隔 (小时)
+    key_rotation_interval: 24

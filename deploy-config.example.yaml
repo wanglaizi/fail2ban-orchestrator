@@ -1,0 +1,607 @@
+# Fail2ban分布式系统部署配置示例
+# 复制此文件为 deploy-config.yaml 并根据实际环境修改配置
+
+# 部署基本信息
+deployment:
+  name: "fail2ban-cluster"  # 部署名称
+  environment: "production"  # 环境: development, testing, production
+  version: "1.0.0"  # 版本号
+
+# 中央控制节点配置
+central:
+  # 服务器信息
+  host: "192.168.1.10"  # 中央服务器IP
+  ssh_port: 22
+  ssh_user: "root"
+  ssh_key: "~/.ssh/id_rsa"  # SSH私钥路径
+  
+  # 服务配置
+  api_port: 5000
+  websocket_port: 5001
+  web_port: 8080
+  
+  # 数据库配置
+  redis:
+    host: "192.168.1.10"
+    port: 6379
+    password: ""  # Redis密码，留空表示无密码
+    database: 0
+  
+  mongodb:
+    host: "192.168.1.10"
+    port: 27017
+    database: "fail2ban_distributed"
+    username: ""  # MongoDB用户名，留空表示无认证
+    password: ""  # MongoDB密码
+  
+  # 安全配置
+  api_key: "your-secure-api-key-here"  # 建议使用随机生成的32位字符串
+  secret_key: "your-secret-key-here"   # 建议使用随机生成的32位字符串
+  
+  # 封禁策略
+  ban_policy:
+    default_ban_time: 3600    # 默认封禁时间(秒)
+    max_ban_time: 86400       # 最大封禁时间(秒)
+    risk_threshold: 80        # 风险评分阈值
+    attack_threshold: 5       # 攻击次数阈值
+    ban_time_increment: 2     # 封禁时间递增倍数
+
+# 代理节点配置
+agents:
+  # 三网环境 - 电信
+  - name: "telecom-web-01"
+    host: "192.168.1.20"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    log_paths:
+      - "/var/log/nginx/access.log"
+      - "/var/log/nginx/ssl_access.log"
+    log_format: "nginx_combined"
+    tags:
+      - "telecom"
+      - "web-server"
+      - "production"
+  
+  - name: "telecom-web-02"
+    host: "192.168.1.21"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    log_paths:
+      - "/var/log/nginx/access.log"
+    log_format: "nginx_combined"
+    tags:
+      - "telecom"
+      - "web-server"
+      - "production"
+  
+  # 三网环境 - 联通
+  - name: "unicom-web-01"
+    host: "192.168.2.20"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    log_paths:
+      - "/var/log/nginx/access.log"
+    log_format: "nginx_combined"
+    tags:
+      - "unicom"
+      - "web-server"
+      - "production"
+  
+  # 三网环境 - 移动
+  - name: "mobile-web-01"
+    host: "192.168.3.20"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    log_paths:
+      - "/var/log/nginx/access.log"
+    log_format: "nginx_combined"
+    tags:
+      - "mobile"
+      - "web-server"
+      - "production"
+  
+  # 海外服务器 - 美国
+  - name: "us-web-01"
+    host: "10.0.1.20"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    log_paths:
+      - "/var/log/nginx/access.log"
+    log_format: "nginx_combined"
+    tags:
+      - "overseas"
+      - "us"
+      - "web-server"
+      - "production"
+  
+  # 海外服务器 - 欧洲
+  - name: "eu-web-01"
+    host: "10.0.2.20"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    log_paths:
+      - "/var/log/nginx/access.log"
+    log_format: "nginx_combined"
+    tags:
+      - "overseas"
+      - "eu"
+      - "web-server"
+      - "production"
+
+# 执行节点配置
+executors:
+  # 三网环境执行节点
+  - name: "telecom-executor-01"
+    host: "192.168.1.30"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    fail2ban_jail: "distributed-ban"
+    protected_networks:
+      - "192.168.1.0/24"  # 保护的网络段
+    tags:
+      - "telecom"
+      - "executor"
+      - "production"
+  
+  - name: "unicom-executor-01"
+    host: "192.168.2.30"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    fail2ban_jail: "distributed-ban"
+    protected_networks:
+      - "192.168.2.0/24"
+    tags:
+      - "unicom"
+      - "executor"
+      - "production"
+  
+  - name: "mobile-executor-01"
+    host: "192.168.3.30"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    fail2ban_jail: "distributed-ban"
+    protected_networks:
+      - "192.168.3.0/24"
+    tags:
+      - "mobile"
+      - "executor"
+      - "production"
+  
+  # 海外执行节点
+  - name: "us-executor-01"
+    host: "10.0.1.30"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    fail2ban_jail: "distributed-ban"
+    protected_networks:
+      - "10.0.1.0/24"
+    tags:
+      - "overseas"
+      - "us"
+      - "executor"
+      - "production"
+  
+  - name: "eu-executor-01"
+    host: "10.0.2.30"
+    ssh_port: 22
+    ssh_user: "root"
+    ssh_key: "~/.ssh/id_rsa"
+    fail2ban_jail: "distributed-ban"
+    protected_networks:
+      - "10.0.2.0/24"
+    tags:
+      - "overseas"
+      - "eu"
+      - "executor"
+      - "production"
+
+# 通知配置
+notifications:
+  # 邮件通知
+  email:
+    enabled: true
+    smtp_server: "smtp.example.com"
+    smtp_port: 587
+    username: "alert@example.com"
+    password: "your-email-password"
+    from_email: "fail2ban@example.com"
+    to_emails:
+      - "admin@example.com"
+      - "security@example.com"
+    use_tls: true
+    
+    # 通知规则
+    rules:
+      - event: "high_risk_attack"  # 高风险攻击
+        threshold: 90
+        cooldown: 300  # 冷却时间(秒)
+      - event: "mass_attack"       # 大规模攻击
+        threshold: 100  # 每分钟攻击次数
+        cooldown: 600
+      - event: "node_offline"      # 节点离线
+        cooldown: 1800
+  
+  # 钉钉通知
+  dingtalk:
+    enabled: true
+    webhook_url: "https://oapi.dingtalk.com/robot/send?access_token=your-token"
+    secret: "your-dingtalk-secret"
+    
+    # 通知规则
+    rules:
+      - event: "critical_attack"   # 严重攻击
+        threshold: 95
+        cooldown: 180
+      - event: "system_error"      # 系统错误
+        cooldown: 900
+  
+  # 微信通知
+  wechat:
+    enabled: false
+    webhook_url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key"
+    
+    # 通知规则
+    rules:
+      - event: "emergency"         # 紧急事件
+        threshold: 98
+        cooldown: 60
+
+# 攻击检测配置
+detection:
+  # 检测模式
+  patterns:
+    enabled_types:
+      - "sql_injection"      # SQL注入
+      - "xss"                # 跨站脚本
+      - "path_traversal"     # 路径遍历
+      - "command_injection"  # 命令注入
+      - "file_inclusion"     # 文件包含
+      - "scanner"            # 扫描器
+      - "brute_force"        # 暴力破解
+      - "ddos"               # DDoS攻击
+    
+    # 自定义检测规则
+    custom_patterns:
+      malicious_paths:
+        - "/admin/config.php"
+        - "/.env"
+        - "/config/database.yml"
+        - "/.git/config"
+        - "/wp-config.php"
+      
+      malicious_params:
+        - "union select"
+        - "<script"
+        - "../../../"
+        - "cmd.exe"
+        - "eval("
+  
+  # 频率检测
+  frequency:
+    # 高频访问检测
+    high_frequency:
+      window: 60        # 时间窗口(秒)
+      threshold: 100    # 请求阈值
+      ban_time: 1800    # 封禁时间(秒)
+    
+    # 404错误检测
+    error_404:
+      window: 300       # 时间窗口(秒)
+      threshold: 20     # 错误次数阈值
+      rate_threshold: 50  # 错误率阈值(%)
+      ban_time: 3600
+    
+    # 5xx错误检测
+    error_5xx:
+      window: 180
+      threshold: 10
+      ban_time: 7200
+  
+  # 地理位置检测
+  geolocation:
+    enabled: true
+    blocked_countries:
+      - "CN"  # 根据需要调整
+      - "RU"
+      - "KP"
+    suspicious_countries:
+      - "IR"
+      - "PK"
+    
+    # 地理异常检测
+    anomaly_detection:
+      enabled: true
+      max_countries_per_hour: 5  # 每小时最大国家数
+      ban_time: 1800
+
+# 性能配置
+performance:
+  # 内存配置
+  memory:
+    max_memory_mb: 1024      # 最大内存使用(MB)
+    gc_threshold: 800        # 垃圾回收阈值(MB)
+  
+  # 缓存配置
+  cache:
+    ip_analysis_size: 10000   # IP分析缓存大小
+    pattern_cache_size: 5000  # 模式缓存大小
+    expire_time: 1800         # 缓存过期时间(秒)
+  
+  # 并发配置
+  concurrency:
+    max_workers: 10           # 最大工作线程数
+    queue_size: 1000          # 队列大小
+    batch_size: 100           # 批处理大小
+  
+  # 数据库连接池
+  database_pool:
+    redis:
+      max_connections: 50
+      min_connections: 5
+    mongodb:
+      max_pool_size: 20
+      min_pool_size: 2
+
+# 安全配置
+security:
+  # 访问控制
+  access_control:
+    # 允许访问API的IP段
+    allowed_ips:
+      - "192.168.0.0/16"   # 内网
+      - "10.0.0.0/8"       # 内网
+      - "172.16.0.0/12"    # 内网
+    
+    # 拒绝访问的IP
+    denied_ips: []
+    
+    # 白名单IP（永不封禁）
+    whitelist_ips:
+      - "127.0.0.1"        # 本地
+      - "192.168.1.1"      # 网关
+      - "8.8.8.8"          # DNS服务器
+      - "8.8.4.4"
+  
+  # 速率限制
+  rate_limiting:
+    api_requests_per_minute: 1000  # API每分钟请求限制
+    websocket_connections: 100     # WebSocket连接限制
+  
+  # SSL/TLS配置
+  ssl:
+    enabled: false  # 是否启用SSL
+    cert_file: "/etc/ssl/certs/fail2ban.crt"
+    key_file: "/etc/ssl/private/fail2ban.key"
+    ca_file: "/etc/ssl/certs/ca.crt"
+  
+  # 加密配置
+  encryption:
+    algorithm: "AES-256-GCM"  # 加密算法
+    key_rotation_days: 30     # 密钥轮换天数
+
+# 日志配置
+logging:
+  # 日志级别
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  
+  # 日志文件
+  files:
+    system: "/var/log/fail2ban-distributed/system.log"
+    error: "/var/log/fail2ban-distributed/error.log"
+    access: "/var/log/fail2ban-distributed/access.log"
+    audit: "/var/log/fail2ban-distributed/audit.log"
+  
+  # 日志轮转
+  rotation:
+    max_size: "100MB"     # 单个日志文件最大大小
+    backup_count: 30      # 保留的备份文件数
+    compress: true        # 是否压缩旧日志
+  
+  # 远程日志
+  remote_logging:
+    enabled: false
+    syslog_server: "192.168.1.100"
+    syslog_port: 514
+    facility: "local0"
+
+# 监控配置
+monitoring:
+  # 健康检查
+  health_check:
+    enabled: true
+    interval: 30          # 检查间隔(秒)
+    timeout: 10           # 超时时间(秒)
+  
+  # 指标收集
+  metrics:
+    enabled: true
+    prometheus_port: 9090  # Prometheus指标端口
+    
+    # 自定义指标
+    custom_metrics:
+      - "attack_count_by_type"
+      - "ban_success_rate"
+      - "response_time_percentile"
+  
+  # 告警规则
+  alerts:
+    # CPU使用率告警
+    cpu_usage:
+      threshold: 80       # 阈值(%)
+      duration: 300       # 持续时间(秒)
+    
+    # 内存使用率告警
+    memory_usage:
+      threshold: 85
+      duration: 300
+    
+    # 磁盘使用率告警
+    disk_usage:
+      threshold: 90
+      duration: 60
+    
+    # 错误率告警
+    error_rate:
+      threshold: 5        # 错误率(%)
+      duration: 180
+
+# 备份配置
+backup:
+  # 自动备份
+  auto_backup:
+    enabled: true
+    schedule: "0 2 * * *"  # Cron表达式，每天凌晨2点
+    retention_days: 30     # 备份保留天数
+  
+  # 备份存储
+  storage:
+    local:
+      enabled: true
+      path: "/backup/fail2ban"
+    
+    remote:
+      enabled: false
+      type: "s3"          # s3, ftp, sftp
+      endpoint: "s3.amazonaws.com"
+      bucket: "fail2ban-backup"
+      access_key: "your-access-key"
+      secret_key: "your-secret-key"
+  
+  # 备份内容
+  include:
+    - "config"            # 配置文件
+    - "database"          # 数据库
+    - "logs"              # 日志文件
+    - "custom_rules"      # 自定义规则
+
+# 部署选项
+deployment_options:
+  # 安装选项
+  install:
+    skip_dependencies: false    # 跳过依赖安装
+    force_reinstall: false      # 强制重新安装
+    backup_existing: true       # 备份现有配置
+  
+  # 服务选项
+  services:
+    auto_start: true            # 自动启动服务
+    enable_on_boot: true        # 开机自启
+    restart_on_failure: true    # 失败时重启
+  
+  # 防火墙配置
+  firewall:
+    auto_configure: true        # 自动配置防火墙
+    backup_rules: true          # 备份现有规则
+  
+  # 系统优化
+  system_optimization:
+    kernel_parameters: true     # 优化内核参数
+    file_limits: true          # 调整文件句柄限制
+    network_tuning: true       # 网络参数调优
+
+# 测试配置
+testing:
+  # 部署后测试
+  post_deploy_tests:
+    enabled: true
+    test_types:
+      - "connectivity"     # 连通性测试
+      - "api"             # API测试
+      - "database"        # 数据库测试
+      - "log_parsing"     # 日志解析测试
+  
+  # 性能测试
+  performance_tests:
+    enabled: false
+    duration: 300             # 测试持续时间(秒)
+    concurrent_users: 10      # 并发用户数
+  
+  # 安全测试
+  security_tests:
+    enabled: false
+    test_types:
+      - "authentication"   # 认证测试
+      - "authorization"    # 授权测试
+      - "injection"        # 注入测试
+
+# 环境变量
+environment_variables:
+  # 系统环境变量
+  FAIL2BAN_ENV: "production"
+  FAIL2BAN_DEBUG: "false"
+  FAIL2BAN_LOG_LEVEL: "INFO"
+  
+  # 数据库连接
+  REDIS_URL: "redis://192.168.1.10:6379/0"
+  MONGODB_URL: "mongodb://192.168.1.10:27017/fail2ban_distributed"
+  
+  # 安全配置
+  API_KEY: "${api_key}"        # 引用上面定义的api_key
+  SECRET_KEY: "${secret_key}"  # 引用上面定义的secret_key
+
+# 自定义脚本
+custom_scripts:
+  # 部署前脚本
+  pre_deploy:
+    - name: "backup_existing_config"
+      script: |
+        #!/bin/bash
+        if [ -d "/etc/fail2ban-distributed" ]; then
+          cp -r /etc/fail2ban-distributed /tmp/fail2ban-backup-$(date +%Y%m%d-%H%M%S)
+        fi
+  
+  # 部署后脚本
+  post_deploy:
+    - name: "verify_installation"
+      script: |
+        #!/bin/bash
+        systemctl is-active --quiet fail2ban-central && echo "Central service OK" || echo "Central service FAILED"
+        systemctl is-active --quiet fail2ban-web && echo "Web service OK" || echo "Web service FAILED"
+    
+    - name: "send_notification"
+      script: |
+        #!/bin/bash
+        echo "Fail2ban distributed system deployed successfully on $(hostname)" | \
+        mail -s "Deployment Complete" admin@example.com
+
+# 版本控制
+version_control:
+  # Git配置
+  git:
+    enabled: false
+    repository: "https://github.com/your-org/fail2ban-distributed.git"
+    branch: "main"
+    auto_commit: false
+  
+  # 配置版本管理
+  config_versioning:
+    enabled: true
+    backup_on_change: true
+    max_versions: 10
+
+# 文档和帮助
+documentation:
+  # 生成文档
+  generate_docs: true
+  
+  # 帮助信息
+  help_urls:
+    user_guide: "https://docs.example.com/fail2ban/user-guide"
+    api_docs: "https://docs.example.com/fail2ban/api"
+    troubleshooting: "https://docs.example.com/fail2ban/troubleshooting"
+  
+  # 联系信息
+  support:
+    email: "support@example.com"
+    slack: "#fail2ban-support"
+    phone: "+1-555-0123"
