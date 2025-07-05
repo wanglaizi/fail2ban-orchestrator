@@ -1,0 +1,181 @@
+# 分布式Fail2ban系统 - 增强功能配置示例
+# 此配置文件展示如何启用和配置增强功能模块
+
+# 基础配置
+logging:
+  level: INFO
+  file: logs/fail2ban.log
+  max_size: 10MB
+  backup_count: 5
+
+# 数据库配置
+database:
+  type: sqlite
+  path: data/fail2ban.db
+  pool_size: 10
+  timeout: 30
+
+# 网络配置
+network:
+  central_server:
+    host: 127.0.0.1
+    port: 8888
+  web_dashboard:
+    host: 127.0.0.1
+    port: 8080
+    secret_key: your-secret-key-here
+
+# 日志分析配置
+log_analysis:
+  patterns:
+    ssh_failed_login:
+      pattern: "Failed password for .* from ([0-9.]+)"
+      threshold: 5
+      window: 600
+    web_404_flood:
+      pattern: "GET .* 404"
+      threshold: 20
+      window: 300
+
+# 封禁规则
+ban_rules:
+  default_ban_time: 3600
+  max_ban_time: 86400
+  progressive_ban: true
+  whitelist:
+    - 127.0.0.1
+    - 192.168.1.0/24
+
+# 通知配置
+notifications:
+  email:
+    enabled: false
+    smtp_server: smtp.gmail.com
+    smtp_port: 587
+    username: your-email@gmail.com
+    password: your-app-password
+    recipients:
+      - admin@example.com
+  webhook:
+    enabled: false
+    url: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+
+# 性能配置
+performance:
+  max_workers: 4
+  queue_size: 1000
+  cleanup_interval: 3600
+
+# 增强功能配置 - 这是新增的部分
+enhancements:
+  enabled: true  # 启用增强功能
+  
+  # 多租户管理
+  multi_tenancy:
+    enabled: true
+    admin_password: "secure_admin_password_123"
+    tenant_isolation: true
+    resource_limits:
+      max_users_per_tenant: 100
+      max_rules_per_tenant: 50
+  
+  # 智能告警系统
+  intelligent_alerting:
+    enabled: true
+    dynamic_threshold: true
+    alert_channels:
+      - email
+      - webhook
+      - dashboard
+    severity_levels:
+      low: 10
+      medium: 50
+      high: 100
+      critical: 500
+  
+  # 性能监控
+  performance_monitoring:
+    enabled: true
+    trace_requests: true
+    metrics_retention: 7  # 天数
+    alert_thresholds:
+      cpu_usage: 80
+      memory_usage: 85
+      response_time: 1000  # 毫秒
+  
+  # 安全审计
+  security_auditing:
+    enabled: true
+    compliance_reports: true
+    audit_log_retention: 30  # 天数
+    security_events:
+      - login_attempts
+      - configuration_changes
+      - ban_actions
+      - system_access
+  
+  # 机器学习攻击检测
+  ml_attack_detection:
+    enabled: true
+    auto_training: true
+    model_update_interval: 24  # 小时
+    detection_algorithms:
+      - anomaly_detection
+      - pattern_recognition
+      - behavioral_analysis
+    confidence_threshold: 0.8
+  
+  # Web管理界面
+  web_interface:
+    enabled: true
+    host: "0.0.0.0"  # 允许外部访问
+    port: 8080
+    ssl_enabled: false
+    session_timeout: 3600
+    features:
+      - dashboard
+      - user_management
+      - rule_configuration
+      - monitoring
+      - reports
+
+# 数据源配置（增强功能）
+data_sources:
+  log_files:
+    - path: "/var/log/auth.log"
+      type: "ssh"
+      enabled: true
+    - path: "/var/log/nginx/access.log"
+      type: "web"
+      enabled: true
+  
+  databases:
+    - type: "mysql"
+      host: "localhost"
+      port: 3306
+      database: "security_logs"
+      enabled: false
+  
+  apis:
+    - name: "security_api"
+      url: "https://api.security.com/logs"
+      auth_token: "your-api-token"
+      enabled: false
+
+# 集成配置
+integrations:
+  elasticsearch:
+    enabled: false
+    hosts:
+      - "localhost:9200"
+    index_pattern: "fail2ban-*"
+  
+  grafana:
+    enabled: false
+    url: "http://localhost:3000"
+    api_key: "your-grafana-api-key"
+  
+  prometheus:
+    enabled: false
+    port: 9090
+    metrics_path: "/metrics"

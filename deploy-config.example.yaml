@@ -579,7 +579,7 @@ version_control:
   # Git配置
   git:
     enabled: false
-    repository: "https://github.com/your-org/fail2ban-distributed.git"
+    repository: "https://github.com/wanglaizi/fail2ban-orchestrator.git"
     branch: "main"
     auto_commit: false
   

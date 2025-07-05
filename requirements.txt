@@ -89,11 +89,9 @@ orjson==3.9.10
 click==8.1.7
 rich==13.7.0
 
-# 文件操作
-pathlib2==2.3.7
-
-# 并发处理
-concurrent-futures==3.1.1
+# 注意：pathlib2和concurrent-futures在Python 3.4+中已经是标准库的一部分
+# pathlib2==2.3.7  # Python 3.4+中pathlib已内置
+# concurrent-futures==3.1.1  # Python 3.2+中concurrent.futures已内置
 
 # 缓存
 cachetools==5.3.2
@@ -122,18 +120,6 @@ email-validator==2.1.0
 # 模板引擎
 Jinja2==3.1.2
 
-# 压缩
-gzip==1.0
-
-# 序列化
-pickle5==0.0.12
-
-# 多进程
-multiprocessing-logging==0.3.4
-
-# 信号处理
-signal==1.0
-
 # 文件锁
 filelock==3.13.1
 
@@ -147,407 +133,29 @@ tqdm==4.66.1
 colorama==0.4.6
 termcolor==2.3.0
 
-# 系统调用
-subprocess32==3.5.4
-
 # 时区处理
 pytz==2023.3
-
-# UUID生成
-uuid==1.30
-
-# 哈希算法
-hashlib==20081119
-
-# Base64编码
-base64==1.0
 
 # URL处理
 urllib3==2.1.0
 
-# 正则表达式
-re==2.2.1
-
-# 数学计算
-math==1.0
-
-# 随机数
-random==1.0
-
-# 操作系统接口
-os==1.0
-
-# 系统特定参数
-sys==1.0
-
-# 时间相关
-time==1.0
-datetime==1.0
-
-# 集合数据类型
-collections==1.0
-
-# 迭代器
-itertools==1.0
-
-# 函数式编程
-functools==1.0
-
-# 操作符
-operator==1.0
-
-# 复制
-copy==1.0
-
-# 深度复制
-deepcopy==1.0
-
-# 垃圾回收
-gc==1.0
-
-# 弱引用
-weakref==1.0
-
-# 线程
-threading==1.0
-
-# 队列
-queue==1.0
-
-# 套接字
-socket==1.0
-
-# 选择器
-selectors==1.0
-
-# SSL
-ssl==1.0
-
-# HTTP服务器
-http.server==1.0
-
-# URL解析
-urllib.parse==1.0
-
-# JSON
-json==1.0
-
-# CSV
-csv==1.0
-
-# XML
-xml==1.0
-
-# HTML
-html==1.0
-
-# 压缩
-zlib==1.0
-gzip==1.0
-bz2==1.0
-lzma==1.0
-
-# 归档
-tarfile==1.0
-zipfile==1.0
-
-# 临时文件
-tempfile==1.0
-
-# 文件比较
-filecmp==1.0
-
-# 文件统计
-stat==1.0
-
-# 路径操作
-posixpath==1.0
-ntpath==1.0
-
-# 环境变量
-os.environ==1.0
-
-# 进程
-subprocess==1.0
-
-# 信号
-signal==1.0
-
-# 错误和异常
-exceptions==1.0
-
-# 警告
-warnings==1.0
-
-# 上下文管理
-contextlib==1.0
-
-# 抽象基类
-abc==1.0
-
-# 类型提示
-typing==1.0
-
-# 数据类
-dataclasses==1.0
-
-# 枚举
-enum==1.0
-
-# 装饰器
-decorator==1.0
-
-# 属性
-property==1.0
-
-# 静态方法
-staticmethod==1.0
-
-# 类方法
-classmethod==1.0
-
-# 超类
-super==1.0
-
-# 内置函数
-builtins==1.0
-
-# 导入
-importlib==1.0
-
-# 包资源
-pkg_resources==1.0
-
-# 设置工具
-setuptools==1.0
-
-# 分发工具
-distutils==1.0
-
-# 站点
-site==1.0
-
-# 用户
-user==1.0
-
-# 平台
-platform==1.0
-
-# 系统配置
-sysconfig==1.0
-
-# 编解码器
-codecs==1.0
-
-# 本地化
-locale==1.0
-
-# 获取文本
-gettext==1.0
-
-# 字符串
-string==1.0
-
-# 文本包装
-textwrap==1.0
-
-# 正则表达式
-re==1.0
-
-# 字符串模板
-string.Template==1.0
-
-# 格式化
-format==1.0
-
-# 打印
-print==1.0
-
-# 输入
-input==1.0
-
-# 打开
-open==1.0
-
-# 文件
-file==1.0
-
-# 目录
-dir==1.0
-
-# 帮助
-help==1.0
-
-# 类型
-type==1.0
-
-# 实例
-isinstance==1.0
-
-# 子类
-issubclass==1.0
-
-# 可调用
-callable==1.0
-
-# 哈希
-hash==1.0
-
-# ID
-id==1.0
-
-# 长度
-len==1.0
-
-# 范围
-range==1.0
-
-# 枚举
-enumerate==1.0
-
-# 压缩
-zip==1.0
-
-# 映射
-map==1.0
-
-# 过滤
-filter==1.0
-
-# 归约
-reduce==1.0
-
-# 排序
-sorted==1.0
-
-# 反转
-reversed==1.0
-
-# 最大值
-max==1.0
-
-# 最小值
-min==1.0
-
-# 求和
-sum==1.0
-
-# 任意
-any==1.0
-
-# 全部
-all==1.0
-
-# 绝对值
-abs==1.0
-
-# 四舍五入
-round==1.0
-
-# 幂
-pow==1.0
-
-# 除法
-divmod==1.0
-
-# 二进制
-bin==1.0
-
-# 八进制
-oct==1.0
-
-# 十六进制
-hex==1.0
-
-# ASCII
-ascii==1.0
-
-# 字符
-chr==1.0
-
-# 序数
-ord==1.0
-
-# 表示
-repr==1.0
-
-# 字符串
-str==1.0
-
-# 字节
-bytes==1.0
-
-# 字节数组
-bytearray==1.0
-
-# 内存视图
-memoryview==1.0
-
-# 列表
-list==1.0
-
-# 元组
-tuple==1.0
-
-# 集合
-set==1.0
-
-# 冻结集合
-frozenset==1.0
-
-# 字典
-dict==1.0
-
-# 对象
-object==1.0
-
-# 属性
-getattr==1.0
-setattr==1.0
-delattr==1.0
-hasattr==1.0
-
-# 变量
-vars==1.0
-
-# 目录
-dir==1.0
-
-# 全局
-globals==1.0
-
-# 本地
-locals==1.0
-
-# 执行
-exec==1.0
-
-# 评估
-eval==1.0
-
-# 编译
-compile==1.0
-
-# 导入
-__import__==1.0
-
-# 迭代器
-iter==1.0
-
-# 下一个
-next==1.0
-
-# 切片
-slice==1.0
-
-# 属性
-property==1.0
-
-# 静态方法
-staticmethod==1.0
-
-# 类方法
-classmethod==1.0
-
-# 超类
-super==1.0
+# 注意：以下模块是Python标准库的一部分，不需要单独安装：
+# os, sys, time, datetime, collections, itertools, functools
+# operator, copy, gc, weakref, threading, queue, socket
+# selectors, ssl, http.server, urllib.parse, json, csv
+# xml, html, zlib, gzip, bz2, lzma, math, random
+# hashlib, base64, signal, re, uuid, tarfile, zipfile
+# tempfile, filecmp, stat, posixpath, ntpath, subprocess
+# warnings, contextlib, abc, typing, dataclasses, enum
+# importlib, platform, sysconfig, codecs, locale
+# gettext, string, textwrap 等等
+
+# 以上所有标准库模块和内置函数都已从依赖列表中移除，因为它们是Python内置的
+# 包括：help, type, isinstance, issubclass, callable, hash, id, len
+# range, enumerate, zip, map, filter, reduce, sorted, reversed
+# max, min, sum, any, all, abs, round, pow, divmod, bin, oct, hex
+# ascii, chr, ord, repr, str, bytes, bytearray, memoryview
+# list, tuple, set, frozenset, dict, object, getattr, setattr
+# delattr, hasattr, vars, dir, globals, locals, exec, eval
+# compile, __import__, iter, next, slice, property, staticmethod
+# classmethod, super 等等

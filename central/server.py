@@ -9,31 +9,48 @@ import asyncio
 import json
 import logging
 import time
+import ipaddress
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import aiohttp
 import yaml
 from aiohttp import web, WSMsgType
-from aioredis import Redis
-from motor.motor_asyncio import AsyncIOMotorClient
 
 from utils.logger import setup_logger
-from utils.security import verify_api_key, hash_ip
+from utils.security import verify_api_key
+from utils.database import DatabaseManager, hash_ip, DatabaseError, ConnectionError as DBConnectionError
+from utils.config import ConfigManager
 from analysis.pattern_detector import PatternDetector
 from analysis.ip_analyzer import IPAnalyzer
+
+
+class CentralServerError(Exception):
+    """中央服务器异常"""
+    pass
+
+
+class LogProcessingError(CentralServerError):
+    """日志处理异常"""
+    pass
+
+
+class BanOperationError(CentralServerError):
+    """封禁操作异常"""
+    pass
 
 
 class CentralServer:
     """中央控制节点服务器"""
     
     def __init__(self, config_path: str = "config/config.yaml"):
-        self.config = self._load_config(config_path)
+        # 配置管理
+        self.config_manager = ConfigManager(config_path)
+        self.config = self.config_manager.load_config()
         self.logger = setup_logger("central", self.config)
         
-        # 数据库连接
-        self.redis: Optional[Redis] = None
-        self.mongodb: Optional[AsyncIOMotorClient] = None
+        # 数据库管理器
+        self.db_manager: Optional[DatabaseManager] = None
         
         # 分析引擎
         self.pattern_detector = PatternDetector(self.config)
@@ -43,20 +60,28 @@ class CentralServer:
         self.websocket_connections: Dict[str, web.WebSocketResponse] = {}
         
         # 执行节点管理
-        self.executor_nodes: Dict[str, Dict] = {}
+        self.executor_nodes: Dict[str, Dict[str, Any]] = {}
+        
+        # 性能统计
+        self.stats = {
+            'logs_processed': 0,
+            'bans_initiated': 0,
+            'errors_count': 0,
+            'start_time': time.time()
+        }
         
         # 应用实例
         self.app = web.Application()
         self._setup_routes()
     
-    def _load_config(self, config_path: str) -> dict:
-        """加载配置文件"""
+    async def _reload_config(self) -> None:
+        """重新加载配置"""
         try:
-            with open(config_path, 'r', encoding='utf-8') as f:
-                return yaml.safe_load(f)
+            self.config = self.config_manager.load_config()
+            self.logger.info("配置重新加载成功")
         except Exception as e:
-            print(f"配置文件加载失败: {e}")
-            raise
+            self.logger.error(f"配置重新加载失败: {e}")
+            raise CentralServerError(f"配置重新加载失败: {e}")
     
     def _setup_routes(self):
         """设置路由"""
@@ -90,29 +115,43 @@ class CentralServer:
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-API-Key'
         return response
     
-    async def init_databases(self):
+    async def init_databases(self) -> None:
         """初始化数据库连接"""
         try:
-            # Redis连接
-            redis_config = self.config['central']['database']['redis']
-            self.redis = Redis(
-                host=redis_config['host'],
-                port=redis_config['port'],
-                password=redis_config['password'] or None,
-                db=redis_config['db']
-            )
+            self.db_manager = DatabaseManager(self.config)
+            await self.db_manager.initialize()
             
-            # MongoDB连接
-            mongo_config = self.config['central']['database']['mongodb']
-            self.mongodb = AsyncIOMotorClient(
-                f"mongodb://{mongo_config['host']}:{mongo_config['port']}"
-            )
+            # 创建必要的索引
+            await self._create_indexes()
             
             self.logger.info("数据库连接初始化成功")
             
         except Exception as e:
             self.logger.error(f"数据库连接初始化失败: {e}")
-            raise
+            raise CentralServerError(f"数据库初始化失败: {e}")
+    
+    async def _create_indexes(self) -> None:
+        """创建数据库索引"""
+        try:
+            mongo_manager = self.db_manager.get_mongo()
+            if mongo_manager:
+                # 为access_logs集合创建索引
+                await mongo_manager.create_indexes('access_logs', [
+                    ([('remote_addr', 1), ('timestamp', -1)], {'background': True}),
+                    ([('processed_at', -1)], {'background': True}),
+                    ([('node_id', 1)], {'background': True})
+                ])
+                
+                # 为ban_records集合创建索引
+                await mongo_manager.create_indexes('ban_records', [
+                    ([('ip', 1), ('timestamp', -1)], {'background': True}),
+                    ([('status', 1)], {'background': True}),
+                    ([('timestamp', -1)], {'background': True})
+                ])
+                
+                self.logger.info("数据库索引创建完成")
+        except Exception as e:
+            self.logger.warning(f"索引创建失败: {e}")
     
     async def handle_log_submission(self, request):
         """处理日志提交"""

@@ -1,0 +1,1478 @@
+# 分布式Fail2ban系统完整配置示例
+# 此配置文件包含所有增强功能的详细配置选项
+
+# ============================================================================
+# 系统基础配置
+# ============================================================================
+system:
+  # 调试模式
+  debug: false
+  
+  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  log_level: INFO
+  
+  # 系统密钥（用于加密和签名）
+  secret_key: "your-super-secret-key-change-this-in-production"
+  
+  # 工作目录
+  work_dir: "/var/lib/fail2ban"
+  
+  # 日志目录
+  log_dir: "/var/log/fail2ban"
+  
+  # 数据目录
+  data_dir: "/var/lib/fail2ban/data"
+  
+  # 临时目录
+  temp_dir: "/tmp/fail2ban"
+  
+  # 进程ID文件
+  pid_file: "/var/run/fail2ban.pid"
+  
+  # 最大工作线程数
+  max_workers: 10
+  
+  # 请求超时时间（秒）
+  request_timeout: 30
+  
+  # 启用指标收集
+  enable_metrics: true
+  
+  # 时区设置
+  timezone: "Asia/Shanghai"
+
+# ============================================================================
+# 多租户配置
+# ============================================================================
+multi_tenancy:
+  # 是否启用多租户功能
+  enabled: true
+  
+  # 存储配置
+  storage:
+    # 存储类型: sqlite, mysql, postgresql
+    type: sqlite
+    
+    # SQLite配置
+    db_path: "/var/lib/fail2ban/tenants.db"
+    
+    # MySQL/PostgreSQL配置（当type不是sqlite时使用）
+    host: localhost
+    port: 3306  # MySQL: 3306, PostgreSQL: 5432
+    database: fail2ban_tenants
+    username: fail2ban_user
+    password: secure_password
+    
+    # 连接池配置
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+  
+  # 超级管理员配置
+  admin_username: admin
+  admin_password: admin123  # 生产环境请修改此密码
+  admin_email: admin@example.com
+  
+  # 默认租户配额
+  default_quota:
+    max_banned_ips: 1000
+    max_rules: 50
+    max_users: 5
+    max_api_requests_per_hour: 5000
+    max_log_retention_days: 30
+    max_storage_mb: 500
+    max_concurrent_sessions: 5
+  
+  # 会话配置
+  session:
+    # 会话过期时间（秒）
+    expire_time: 86400  # 24小时
+    
+    # 会话清理间隔（秒）
+    cleanup_interval: 3600  # 1小时
+    
+    # 最大会话数
+    max_sessions_per_user: 3
+    
+    # 会话令牌长度
+    token_length: 32
+  
+  # 密码策略
+  password_policy:
+    min_length: 8
+    require_uppercase: true
+    require_lowercase: true
+    require_numbers: true
+    require_special_chars: true
+    max_age_days: 90
+    history_count: 5
+
+# ============================================================================
+# 智能告警和动态阈值配置
+# ============================================================================
+intelligent_alerting:
+  # 是否启用智能告警
+  enabled: true
+  
+  # 异常检测配置
+  anomaly_detection:
+    # 算法类型: isolation_forest, one_class_svm, local_outlier_factor
+    algorithm: isolation_forest
+    
+    # 异常比例（0.0-1.0）
+    contamination: 0.1
+    
+    # 滑动窗口大小
+    window_size: 100
+    
+    # 最小样本数
+    min_samples: 50
+    
+    # 模型更新间隔（秒）
+    update_interval: 3600
+  
+  # 动态阈值配置
+  dynamic_thresholds:
+    # 是否启用动态阈值
+    enabled: true
+    
+    # 自适应速率（0.0-1.0）
+    adaptation_rate: 0.1
+    
+    # 最小样本数
+    min_samples: 50
+    
+    # 置信区间
+    confidence_interval: 0.95
+    
+    # 阈值更新间隔（秒）
+    update_interval: 300
+  
+  # 告警抑制配置
+  alert_suppression:
+    # 是否启用告警抑制
+    enabled: true
+    
+    # 时间窗口（秒）
+    time_window: 300
+    
+    # 窗口内最大告警数
+    max_alerts_per_window: 5
+    
+    # 相似告警合并
+    merge_similar_alerts: true
+    
+    # 相似度阈值
+    similarity_threshold: 0.8
+  
+  # 告警规则
+  alert_rules:
+    # 高频攻击检测
+    - name: "high_frequency_attack"
+      enabled: true
+      condition:
+        metric: "attack_count"
+        operator: ">"
+        threshold: 100
+        time_window: 300
+      severity: "high"
+      actions: ["ban_ip", "send_notification", "log_event"]
+      description: "检测到高频攻击行为"
+    
+    # 异常IP行为
+    - name: "anomalous_ip_behavior"
+      enabled: true
+      condition:
+        metric: "anomaly_score"
+        operator: ">"
+        threshold: 0.8
+        time_window: 600
+      severity: "medium"
+      actions: ["send_notification", "log_event"]
+      description: "检测到异常IP行为"
+    
+    # 系统资源告警
+    - name: "system_resource_alert"
+      enabled: true
+      condition:
+        metric: "cpu_usage"
+        operator: ">"
+        threshold: 80
+        time_window: 300
+      severity: "warning"
+      actions: ["send_notification"]
+      description: "系统CPU使用率过高"
+  
+  # 告警通知配置
+  notification:
+    # 默认通知渠道
+    default_channels: ["email", "slack"]
+    
+    # 按严重性分配渠道
+    severity_channels:
+      critical: ["email", "slack", "dingtalk", "webhook"]
+      high: ["email", "slack"]
+      medium: ["slack"]
+      low: ["email"]
+    
+    # 通知频率限制
+    rate_limits:
+      email: 300  # 5分钟
+      slack: 60   # 1分钟
+      dingtalk: 60
+      webhook: 30
+
+# ============================================================================
+# 性能监控和链路追踪配置
+# ============================================================================
+performance_monitoring:
+  # 是否启用性能监控
+  enabled: true
+  
+  # 数据收集间隔（秒）
+  collection_interval: 60
+  
+  # 链路追踪采样率（0.0-1.0）
+  trace_sampling_rate: 0.1
+  
+  # 性能阈值
+  thresholds:
+    # CPU使用率阈值（%）
+    cpu_usage: 80
+    
+    # 内存使用率阈值（%）
+    memory_usage: 85
+    
+    # 响应时间阈值（毫秒）
+    response_time: 1000
+    
+    # 错误率阈值（%）
+    error_rate: 5
+    
+    # 磁盘使用率阈值（%）
+    disk_usage: 90
+    
+    # 网络延迟阈值（毫秒）
+    network_latency: 100
+  
+  # 指标收集配置
+  metrics:
+    # 系统指标
+    system:
+      enabled: true
+      interval: 30
+      metrics: ["cpu", "memory", "disk", "network"]
+    
+    # 应用指标
+    application:
+      enabled: true
+      interval: 60
+      metrics: ["requests", "responses", "errors", "latency"]
+    
+    # 数据库指标
+    database:
+      enabled: true
+      interval: 120
+      metrics: ["connections", "queries", "locks", "cache"]
+  
+  # 链路追踪配置
+  tracing:
+    # 是否启用链路追踪
+    enabled: true
+    
+    # 追踪器名称
+    service_name: "fail2ban-system"
+    
+    # 最大span数量
+    max_spans: 1000
+    
+    # span过期时间（秒）
+    span_expire_time: 3600
+    
+    # 导出配置
+    export:
+      # 导出类型: console, jaeger, zipkin, otlp
+      type: console
+      
+      # Jaeger配置
+      jaeger:
+        endpoint: "http://localhost:14268/api/traces"
+        agent_host: "localhost"
+        agent_port: 6831
+      
+      # Zipkin配置
+      zipkin:
+        endpoint: "http://localhost:9411/api/v2/spans"
+      
+      # OTLP配置
+      otlp:
+        endpoint: "http://localhost:4317"
+        headers: {}
+  
+  # 数据存储配置
+  storage:
+    # 存储类型: memory, redis, influxdb, prometheus
+    type: memory
+    
+    # 数据保留时间（秒）
+    retention_time: 86400  # 24小时
+    
+    # Redis配置（当type为redis时）
+    redis:
+      host: localhost
+      port: 6379
+      db: 1
+      password: ""
+    
+    # InfluxDB配置（当type为influxdb时）
+    influxdb:
+      url: "http://localhost:8086"
+      token: "your-influxdb-token"
+      org: "your-org"
+      bucket: "fail2ban-metrics"
+    
+    # Prometheus配置（当type为prometheus时）
+    prometheus:
+      gateway_url: "http://localhost:9091"
+      job_name: "fail2ban"
+      push_interval: 60
+
+# ============================================================================
+# 安全审计功能配置
+# ============================================================================
+security_auditing:
+  # 是否启用安全审计
+  enabled: true
+  
+  # 加密密钥（32字符）
+  encryption_key: "your-32-character-encryption-key"
+  
+  # 审计日志存储
+  storage:
+    # 存储类型: sqlite, mysql, postgresql, mongodb
+    type: sqlite
+    
+    # 数据库文件路径（SQLite）
+    db_path: "/var/lib/fail2ban/security_audit.db"
+    
+    # 数据库连接配置（MySQL/PostgreSQL）
+    host: localhost
+    port: 3306
+    database: fail2ban_audit
+    username: audit_user
+    password: audit_password
+    
+    # MongoDB配置
+    mongodb:
+      uri: "mongodb://localhost:27017/fail2ban_audit"
+      collection: "security_events"
+  
+  # 威胁情报配置
+  threat_intelligence:
+    # 是否启用威胁情报
+    enabled: true
+    
+    # 威胁情报源
+    feeds:
+      # 恶意IP列表
+      - name: "malware_ips"
+        url: "https://raw.githubusercontent.com/stamparm/ipsum/master/ipsum.txt"
+        format: "text"  # text, json, csv
+        update_interval: 3600  # 1小时
+        enabled: true
+        weight: 1.0
+      
+      # 僵尸网络IP
+      - name: "botnet_ips"
+        url: "https://feodotracker.abuse.ch/downloads/ipblocklist.txt"
+        format: "text"
+        update_interval: 1800  # 30分钟
+        enabled: true
+        weight: 1.5
+      
+      # Tor出口节点
+      - name: "tor_exits"
+        url: "https://check.torproject.org/torbulkexitlist"
+        format: "text"
+        update_interval: 3600
+        enabled: true
+        weight: 0.5
+    
+    # 威胁评分配置
+    scoring:
+      # 基础威胁分数
+      base_score: 0.0
+      
+      # 最大威胁分数
+      max_score: 10.0
+      
+      # 分数衰减时间（秒）
+      decay_time: 86400
+      
+      # 分数衰减率
+      decay_rate: 0.1
+  
+  # 合规性配置
+  compliance:
+    # 支持的合规标准
+    standards: ["PCI_DSS", "GDPR", "HIPAA", "SOX"]
+    
+    # 报告生成间隔（秒）
+    report_interval: 86400  # 24小时
+    
+    # 报告存储路径
+    report_path: "/var/lib/fail2ban/compliance_reports"
+    
+    # 自动生成报告
+    auto_generate: true
+    
+    # 报告格式
+    report_formats: ["json", "pdf", "html"]
+  
+  # 事件分类配置
+  event_classification:
+    # 自动分类
+    auto_classify: true
+    
+    # 分类规则
+    rules:
+      - pattern: "login.*failed"
+        category: "authentication_failure"
+        severity: "medium"
+      
+      - pattern: "sql.*injection"
+        category: "injection_attack"
+        severity: "high"
+      
+      - pattern: "xss.*attack"
+        category: "xss_attack"
+        severity: "high"
+  
+  # 数据保留策略
+  retention:
+    # 默认保留时间（天）
+    default_days: 365
+    
+    # 按严重性保留
+    by_severity:
+      critical: 1095  # 3年
+      high: 730       # 2年
+      medium: 365     # 1年
+      low: 90         # 3个月
+    
+    # 自动清理
+    auto_cleanup: true
+    
+    # 清理间隔（秒）
+    cleanup_interval: 86400
+
+# ============================================================================
+# 机器学习攻击检测配置
+# ============================================================================
+ml_attack_detection:
+  # 是否启用ML检测
+  enabled: true
+  
+  # 模型配置
+  models:
+    # 随机森林模型
+    - name: "random_forest"
+      type: "RandomForest"
+      enabled: true
+      weight: 1.0
+      config:
+        n_estimators: 100
+        max_depth: 10
+        min_samples_split: 2
+        min_samples_leaf: 1
+        random_state: 42
+    
+    # 异常检测模型
+    - name: "anomaly_detection"
+      type: "AnomalyDetection"
+      enabled: true
+      weight: 0.8
+      config:
+        contamination: 0.1
+        algorithm: "isolation_forest"
+    
+    # 深度学习模型
+    - name: "deep_learning"
+      type: "DeepLearning"
+      enabled: false  # 需要更多计算资源
+      weight: 1.2
+      config:
+        hidden_layers: [64, 32, 16]
+        activation: "relu"
+        dropout_rate: 0.2
+        learning_rate: 0.001
+        epochs: 100
+        batch_size: 32
+  
+  # 特征提取配置
+  feature_extraction:
+    # 时间窗口（秒）
+    time_windows: [60, 300, 3600, 86400]
+    
+    # 是否提取行为特征
+    behavioral_features: true
+    
+    # 是否提取统计特征
+    statistical_features: true
+    
+    # 是否提取时间特征
+    temporal_features: true
+    
+    # 特征缓存时间（秒）
+    cache_time: 300
+    
+    # 最大特征数量
+    max_features: 100
+  
+  # 训练配置
+  training:
+    # 自动重训练
+    auto_retrain: true
+    
+    # 重训练间隔（秒）
+    retrain_interval: 86400  # 24小时
+    
+    # 最小训练样本数
+    min_samples: 1000
+    
+    # 训练数据比例
+    train_ratio: 0.8
+    
+    # 验证数据比例
+    validation_ratio: 0.1
+    
+    # 测试数据比例
+    test_ratio: 0.1
+    
+    # 交叉验证折数
+    cv_folds: 5
+    
+    # 早停耐心值
+    early_stopping_patience: 10
+  
+  # 预测配置
+  prediction:
+    # 预测阈值
+    threshold: 0.5
+    
+    # 集成方法: voting, averaging, stacking
+    ensemble_method: "voting"
+    
+    # 预测缓存时间（秒）
+    cache_time: 60
+    
+    # 批量预测大小
+    batch_size: 100
+  
+  # 数据管理
+  data_management:
+    # 最大训练数据量
+    max_training_samples: 100000
+    
+    # 数据平衡策略: none, oversample, undersample, smote
+    balance_strategy: "smote"
+    
+    # 特征选择方法: none, variance, correlation, mutual_info
+    feature_selection: "mutual_info"
+    
+    # 数据清理
+    data_cleaning:
+      remove_duplicates: true
+      handle_missing: "drop"  # drop, fill, interpolate
+      outlier_detection: true
+      outlier_method: "iqr"  # iqr, zscore, isolation_forest
+  
+  # 模型存储
+  model_storage:
+    # 存储路径
+    path: "/var/lib/fail2ban/ml_models"
+    
+    # 模型版本管理
+    versioning: true
+    
+    # 最大版本数
+    max_versions: 10
+    
+    # 模型压缩
+    compression: true
+
+# ============================================================================
+# 数据源配置
+# ============================================================================
+data_sources:
+  # Nginx访问日志
+  nginx_access:
+    type: file
+    enabled: true
+    file_path: "/var/log/nginx/access.log"
+    log_format: "combined"  # combined, common, custom
+    encoding: "utf-8"
+    tail_mode: true
+    buffer_size: 8192
+    poll_interval: 1.0
+    
+    # 自定义日志格式（当log_format为custom时）
+    custom_format: '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"'
+    
+    # 日志轮转处理
+    rotation_handling: true
+    
+    # 文件监控
+    file_monitoring:
+      check_interval: 5
+      max_file_size: 1073741824  # 1GB
+      backup_count: 5
+  
+  # Apache访问日志
+  apache_access:
+    type: file
+    enabled: false
+    file_path: "/var/log/apache2/access.log"
+    log_format: "combined"
+    encoding: "utf-8"
+    tail_mode: true
+  
+  # 系统日志
+  system_log:
+    type: file
+    enabled: true
+    file_path: "/var/log/syslog"
+    log_format: "syslog"
+    encoding: "utf-8"
+    tail_mode: true
+    
+    # 过滤规则
+    filters:
+      - pattern: "fail2ban"
+        action: "include"
+      - pattern: "DEBUG"
+        action: "exclude"
+  
+  # Redis日志缓存
+  redis_cache:
+    type: redis
+    enabled: true
+    host: localhost
+    port: 6379
+    db: 0
+    password: ""
+    key_prefix: "fail2ban:logs"
+    max_entries: 10000
+    expire_time: 86400
+    
+    # 连接池配置
+    connection_pool:
+      max_connections: 10
+      retry_on_timeout: true
+      socket_timeout: 5
+      socket_connect_timeout: 5
+  
+  # MongoDB日志存储
+  mongodb_logs:
+    type: mongodb
+    enabled: false
+    uri: "mongodb://localhost:27017/fail2ban_logs"
+    collection: "access_logs"
+    
+    # 索引配置
+    indexes:
+      - fields: ["timestamp"]
+        background: true
+      - fields: ["ip_address"]
+        background: true
+      - fields: ["status_code"]
+        background: true
+    
+    # 数据保留
+    retention:
+      enabled: true
+      days: 30
+      cleanup_interval: 86400
+
+# ============================================================================
+# 通知渠道配置
+# ============================================================================
+notification_channels:
+  # 邮件通知
+  email_admin:
+    type: email
+    enabled: true
+    
+    # SMTP配置
+    smtp_server: smtp.gmail.com
+    smtp_port: 587
+    use_tls: true
+    use_ssl: false
+    username: admin@example.com
+    password: your-email-password
+    
+    # 发件人信息
+    from_email: admin@example.com
+    from_name: "Fail2ban System"
+    
+    # 收件人列表
+    to_emails:
+      - admin@example.com
+      - security@example.com
+    
+    # 抄送和密送
+    cc_emails: []
+    bcc_emails: []
+    
+    # 邮件模板
+    templates:
+      subject: "[Fail2ban] {severity} Alert: {title}"
+      html_template: "/etc/fail2ban/templates/email.html"
+      text_template: "/etc/fail2ban/templates/email.txt"
+    
+    # 频率限制（秒）
+    rate_limit: 300
+    
+    # 重试配置
+    retry:
+      max_attempts: 3
+      delay: 5
+      backoff_factor: 2
+  
+  # Slack通知
+  slack_alerts:
+    type: slack
+    enabled: true
+    
+    # Webhook URL
+    webhook_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+    
+    # 频道配置
+    channel: "#security"
+    username: "Fail2ban Bot"
+    icon_emoji: ":shield:"
+    
+    # 消息格式
+    message_format:
+      title_link: "http://your-dashboard.com"
+      color_mapping:
+        critical: "danger"
+        high: "warning"
+        medium: "good"
+        low: "#439FE0"
+    
+    # 频率限制（秒）
+    rate_limit: 60
+    
+    # 提及用户
+    mentions:
+      critical: ["@channel"]
+      high: ["@security-team"]
+  
+  # 钉钉通知
+  dingtalk_alerts:
+    type: dingtalk
+    enabled: true
+    
+    # Webhook URL
+    webhook_url: "https://oapi.dingtalk.com/robot/send?access_token=YOUR_TOKEN"
+    
+    # 安全设置
+    secret: "your-dingtalk-secret"
+    
+    # 消息类型: text, markdown, link, actionCard
+    message_type: "markdown"
+    
+    # 提及配置
+    at_mobiles: []
+    at_user_ids: []
+    is_at_all: false
+    
+    # 频率限制（秒）
+    rate_limit: 60
+  
+  # Webhook通知
+  webhook_alerts:
+    type: webhook
+    enabled: true
+    
+    # Webhook URL
+    webhook_url: "https://your-webhook-endpoint.com/alerts"
+    
+    # HTTP方法
+    method: "POST"
+    
+    # 请求头
+    headers:
+      Content-Type: "application/json"
+      Authorization: "Bearer your-api-token"
+      User-Agent: "Fail2ban-System/2.0"
+    
+    # 请求体模板
+    payload_template: |
+      {
+        "alert_id": "{alert_id}",
+        "title": "{title}",
+        "content": "{content}",
+        "severity": "{severity}",
+        "timestamp": "{timestamp}",
+        "source": "{source}",
+        "tags": {tags},
+        "metadata": {metadata}
+      }
+    
+    # 超时设置（秒）
+    timeout: 10
+    
+    # 重试配置
+    retry:
+      max_attempts: 3
+      delay: 2
+      backoff_factor: 1.5
+    
+    # 频率限制（秒）
+    rate_limit: 30
+  
+  # 企业微信通知
+  wechat_work:
+    type: wechat_work
+    enabled: false
+    
+    # 企业微信配置
+    corp_id: "your-corp-id"
+    corp_secret: "your-corp-secret"
+    agent_id: 1000001
+    
+    # 接收用户
+    to_users: ["user1", "user2"]
+    to_parties: []
+    to_tags: []
+    
+    # 消息类型: text, markdown, textcard
+    message_type: "markdown"
+    
+    # 频率限制（秒）
+    rate_limit: 60
+  
+  # 短信通知
+  sms_alerts:
+    type: sms
+    enabled: false
+    
+    # 短信服务商: aliyun, tencent, twilio
+    provider: "aliyun"
+    
+    # 阿里云短信配置
+    aliyun:
+      access_key_id: "your-access-key-id"
+      access_key_secret: "your-access-key-secret"
+      sign_name: "Fail2ban"
+      template_code: "SMS_123456789"
+    
+    # 腾讯云短信配置
+    tencent:
+      secret_id: "your-secret-id"
+      secret_key: "your-secret-key"
+      sms_sdk_app_id: "your-app-id"
+      template_id: "123456"
+      sign: "Fail2ban"
+    
+    # Twilio配置
+    twilio:
+      account_sid: "your-account-sid"
+      auth_token: "your-auth-token"
+      from_number: "+1234567890"
+    
+    # 接收号码
+    to_numbers:
+      - "+8613800138000"
+      - "+8613900139000"
+    
+    # 频率限制（秒）
+    rate_limit: 600  # 10分钟
+
+# ============================================================================
+# Web管理界面配置
+# ============================================================================
+web_interface:
+  # 是否启用Web界面
+  enabled: true
+  
+  # 监听地址
+  host: "0.0.0.0"
+  
+  # 监听端口
+  port: 8080
+  
+  # 调试模式
+  debug: false
+  
+  # 工作进程数
+  workers: 1
+  
+  # CORS配置
+  cors_origins:
+    - "http://localhost:3000"
+    - "https://yourdomain.com"
+  
+  # 静态文件配置
+  static_files:
+    # 静态文件目录
+    directory: "/var/lib/fail2ban/static"
+    
+    # URL前缀
+    url_prefix: "/static"
+    
+    # 缓存控制
+    cache_control: "public, max-age=3600"
+  
+  # 模板配置
+  templates:
+    # 模板目录
+    directory: "/var/lib/fail2ban/templates"
+    
+    # 自动重载
+    auto_reload: false
+  
+  # 会话配置
+  session:
+    # 会话密钥
+    secret_key: "your-session-secret-key"
+    
+    # 会话过期时间（秒）
+    max_age: 86400
+    
+    # Cookie配置
+    cookie:
+      name: "fail2ban_session"
+      secure: false  # 生产环境建议设为true
+      httponly: true
+      samesite: "lax"
+  
+  # SSL/TLS配置
+  ssl:
+    # 是否启用SSL
+    enabled: false
+    
+    # 证书文件路径
+    cert_file: "/etc/ssl/certs/fail2ban.crt"
+    
+    # 私钥文件路径
+    key_file: "/etc/ssl/private/fail2ban.key"
+    
+    # SSL版本
+    ssl_version: "TLSv1_2"
+    
+    # 加密套件
+    ciphers: "ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:!aNULL:!MD5:!DSS"
+  
+  # API配置
+  api:
+    # API前缀
+    prefix: "/api/v1"
+    
+    # API文档
+    docs:
+      enabled: true
+      url: "/docs"
+      redoc_url: "/redoc"
+    
+    # 请求限制
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 60
+      burst_size: 10
+    
+    # 请求大小限制（字节）
+    max_request_size: 1048576  # 1MB
+  
+  # 安全配置
+  security:
+    # 安全头
+    security_headers:
+      enabled: true
+      hsts: "max-age=31536000; includeSubDomains"
+      csp: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+      x_frame_options: "DENY"
+      x_content_type_options: "nosniff"
+    
+    # IP白名单
+    ip_whitelist: []
+    
+    # IP黑名单
+    ip_blacklist: []
+    
+    # 登录保护
+    login_protection:
+      enabled: true
+      max_attempts: 5
+      lockout_time: 300  # 5分钟
+      reset_time: 3600   # 1小时
+
+# ============================================================================
+# 日志配置
+# ============================================================================
+logging:
+  # 日志级别
+  level: INFO
+  
+  # 日志格式
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # 日期格式
+  date_format: "%Y-%m-%d %H:%M:%S"
+  
+  # 日志处理器
+  handlers:
+    # 控制台输出
+    console:
+      enabled: true
+      level: INFO
+      format: "%(asctime)s - %(levelname)s - %(message)s"
+    
+    # 文件输出
+    file:
+      enabled: true
+      level: INFO
+      filename: "/var/log/fail2ban/system.log"
+      max_bytes: 10485760  # 10MB
+      backup_count: 5
+      encoding: "utf-8"
+    
+    # 错误日志
+    error_file:
+      enabled: true
+      level: ERROR
+      filename: "/var/log/fail2ban/error.log"
+      max_bytes: 10485760
+      backup_count: 3
+    
+    # 系统日志
+    syslog:
+      enabled: false
+      level: WARNING
+      address: "/dev/log"
+      facility: "daemon"
+    
+    # 远程日志
+    remote:
+      enabled: false
+      level: ERROR
+      host: "log-server.example.com"
+      port: 514
+      protocol: "udp"  # udp, tcp
+  
+  # 日志轮转
+  rotation:
+    # 轮转方式: time, size
+    method: "time"
+    
+    # 时间轮转配置
+    time:
+      when: "midnight"
+      interval: 1
+      backup_count: 30
+    
+    # 大小轮转配置
+    size:
+      max_bytes: 10485760
+      backup_count: 5
+  
+  # 日志过滤
+  filters:
+    # 敏感信息过滤
+    sensitive_data:
+      enabled: true
+      patterns:
+        - "password"
+        - "token"
+        - "secret"
+        - "key"
+    
+    # 频率限制
+    rate_limit:
+      enabled: true
+      max_messages_per_second: 100
+
+# ============================================================================
+# 缓存配置
+# ============================================================================
+cache:
+  # 缓存类型: memory, redis, memcached
+  type: memory
+  
+  # 默认过期时间（秒）
+  default_expire: 3600
+  
+  # 最大缓存大小
+  max_size: 1000
+  
+  # Redis缓存配置
+  redis:
+    host: localhost
+    port: 6379
+    db: 2
+    password: ""
+    
+    # 连接池配置
+    connection_pool:
+      max_connections: 20
+      retry_on_timeout: true
+    
+    # 键前缀
+    key_prefix: "fail2ban:cache:"
+  
+  # Memcached配置
+  memcached:
+    servers:
+      - "localhost:11211"
+    
+    # 连接配置
+    connection:
+      timeout: 5
+      retry_attempts: 3
+  
+  # 缓存策略
+  policies:
+    # IP信息缓存
+    ip_info:
+      expire: 3600
+      max_size: 10000
+    
+    # 地理位置缓存
+    geo_location:
+      expire: 86400
+      max_size: 5000
+    
+    # 威胁情报缓存
+    threat_intel:
+      expire: 1800
+      max_size: 50000
+    
+    # 用户会话缓存
+    user_sessions:
+      expire: 86400
+      max_size: 1000
+
+# ============================================================================
+# 数据库配置
+# ============================================================================
+database:
+  # 主数据库配置
+  primary:
+    # 数据库类型: sqlite, mysql, postgresql
+    type: sqlite
+    
+    # SQLite配置
+    sqlite:
+      path: "/var/lib/fail2ban/fail2ban.db"
+      timeout: 30
+      check_same_thread: false
+    
+    # MySQL配置
+    mysql:
+      host: localhost
+      port: 3306
+      database: fail2ban
+      username: fail2ban_user
+      password: secure_password
+      charset: utf8mb4
+      
+      # 连接池配置
+      pool:
+        size: 10
+        max_overflow: 20
+        timeout: 30
+        recycle: 3600
+    
+    # PostgreSQL配置
+    postgresql:
+      host: localhost
+      port: 5432
+      database: fail2ban
+      username: fail2ban_user
+      password: secure_password
+      
+      # 连接池配置
+      pool:
+        size: 10
+        max_overflow: 20
+        timeout: 30
+        recycle: 3600
+  
+  # 只读数据库配置（可选）
+  readonly:
+    enabled: false
+    type: mysql
+    host: readonly-db.example.com
+    port: 3306
+    database: fail2ban
+    username: readonly_user
+    password: readonly_password
+  
+  # 数据库迁移
+  migration:
+    # 自动迁移
+    auto_migrate: true
+    
+    # 迁移目录
+    directory: "/var/lib/fail2ban/migrations"
+    
+    # 备份配置
+    backup:
+      enabled: true
+      directory: "/var/lib/fail2ban/backups"
+      retention_days: 30
+
+# ============================================================================
+# 集群配置
+# ============================================================================
+cluster:
+  # 是否启用集群模式
+  enabled: false
+  
+  # 节点配置
+  node:
+    # 节点ID
+    id: "node-1"
+    
+    # 节点名称
+    name: "Fail2ban Node 1"
+    
+    # 节点角色: master, slave, worker
+    role: "master"
+    
+    # 监听地址
+    bind_address: "0.0.0.0:9090"
+    
+    # 广告地址（其他节点连接地址）
+    advertise_address: "192.168.1.100:9090"
+  
+  # 集群发现
+  discovery:
+    # 发现方式: static, consul, etcd, kubernetes
+    method: "static"
+    
+    # 静态节点列表
+    static_nodes:
+      - "192.168.1.100:9090"
+      - "192.168.1.101:9090"
+      - "192.168.1.102:9090"
+    
+    # Consul配置
+    consul:
+      address: "localhost:8500"
+      service_name: "fail2ban"
+      health_check_interval: 30
+    
+    # etcd配置
+    etcd:
+      endpoints:
+        - "http://localhost:2379"
+      prefix: "/fail2ban/cluster"
+    
+    # Kubernetes配置
+    kubernetes:
+      namespace: "default"
+      service_name: "fail2ban"
+      port_name: "cluster"
+  
+  # 数据同步
+  sync:
+    # 同步间隔（秒）
+    interval: 30
+    
+    # 同步超时（秒）
+    timeout: 10
+    
+    # 冲突解决策略: timestamp, priority, manual
+    conflict_resolution: "timestamp"
+  
+  # 故障转移
+  failover:
+    # 启用故障转移
+    enabled: true
+    
+    # 健康检查间隔（秒）
+    health_check_interval: 10
+    
+    # 故障检测阈值
+    failure_threshold: 3
+    
+    # 恢复检测阈值
+    recovery_threshold: 2
+
+# ============================================================================
+# 备份和恢复配置
+# ============================================================================
+backup:
+  # 是否启用自动备份
+  enabled: true
+  
+  # 备份目录
+  directory: "/var/lib/fail2ban/backups"
+  
+  # 备份间隔（秒）
+  interval: 86400  # 24小时
+  
+  # 备份保留天数
+  retention_days: 30
+  
+  # 备份压缩
+  compression:
+    enabled: true
+    algorithm: "gzip"  # gzip, bzip2, xz
+    level: 6
+  
+  # 备份内容
+  include:
+    - "database"
+    - "configuration"
+    - "logs"
+    - "ml_models"
+    - "certificates"
+  
+  # 远程备份
+  remote:
+    enabled: false
+    
+    # 备份方式: s3, ftp, sftp, rsync
+    method: "s3"
+    
+    # S3配置
+    s3:
+      bucket: "fail2ban-backups"
+      region: "us-east-1"
+      access_key_id: "your-access-key"
+      secret_access_key: "your-secret-key"
+      prefix: "backups/"
+    
+    # FTP配置
+    ftp:
+      host: "backup.example.com"
+      port: 21
+      username: "backup_user"
+      password: "backup_password"
+      directory: "/backups/fail2ban"
+    
+    # SFTP配置
+    sftp:
+      host: "backup.example.com"
+      port: 22
+      username: "backup_user"
+      private_key: "/etc/fail2ban/ssh_keys/backup_key"
+      directory: "/backups/fail2ban"
+    
+    # Rsync配置
+    rsync:
+      host: "backup.example.com"
+      module: "fail2ban_backups"
+      username: "backup_user"
+      password: "backup_password"
+  
+  # 恢复配置
+  restore:
+    # 自动恢复
+    auto_restore: false
+    
+    # 恢复验证
+    verification: true
+    
+    # 恢复前备份
+    backup_before_restore: true
+
+# ============================================================================
+# 监控和健康检查配置
+# ============================================================================
+health_check:
+  # 健康检查端点
+  endpoint: "/health"
+  
+  # 检查间隔（秒）
+  interval: 30
+  
+  # 超时时间（秒）
+  timeout: 5
+  
+  # 检查项目
+  checks:
+    # 数据库连接
+    database:
+      enabled: true
+      timeout: 5
+    
+    # Redis连接
+    redis:
+      enabled: true
+      timeout: 3
+    
+    # 磁盘空间
+    disk_space:
+      enabled: true
+      threshold: 90  # 使用率百分比
+    
+    # 内存使用
+    memory:
+      enabled: true
+      threshold: 85  # 使用率百分比
+    
+    # CPU使用
+    cpu:
+      enabled: true
+      threshold: 80  # 使用率百分比
+    
+    # 网络连接
+    network:
+      enabled: true
+      test_hosts:
+        - "8.8.8.8"
+        - "1.1.1.1"
+  
+  # 健康状态通知
+  notifications:
+    # 状态变化通知
+    on_status_change: true
+    
+    # 通知渠道
+    channels: ["email", "slack"]
+    
+    # 通知频率限制（秒）
+    rate_limit: 300
+
+# ============================================================================
+# 开发和调试配置
+# ============================================================================
+development:
+  # 开发模式
+  debug: false
+  
+  # 性能分析
+  profiling:
+    enabled: false
+    output_dir: "/tmp/fail2ban_profiles"
+  
+  # 测试配置
+  testing:
+    # 测试数据库
+    test_database: "/tmp/fail2ban_test.db"
+    
+    # 测试数据目录
+    test_data_dir: "/tmp/fail2ban_test_data"
+    
+    # 模拟数据生成
+    mock_data:
+      enabled: false
+      attack_rate: 0.1  # 攻击事件比例
+      normal_rate: 0.9  # 正常事件比例
+  
+  # API文档
+  api_docs:
+    enabled: true
+    title: "Fail2ban API"
+    description: "分布式Fail2ban系统API文档"
+    version: "2.0.0"
+    contact:
+      name: "开发团队"
+      email: "dev@example.com"
+      url: "https://github.com/wanglaizi/fail2ban-orchestrator"

@@ -1,282 +1,696 @@
-# Fail2ban分布式系统用户手册
+# 用户使用手册
+
+> 📖 本手册提供系统的详细使用指南和运维说明。基础安装请参考 [README.md](../README.md)，系统集成请参考 [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md)
 
 ## 目录
 
-1. [系统概述](#系统概述)
-2. [快速开始](#快速开始)
-3. [系统架构](#系统架构)
-4. [安装部署](#安装部署)
-5. [配置说明](#配置说明)
-6. [使用指南](#使用指南)
-7. [Web管理界面](#web管理界面)
-8. [命令行工具](#命令行工具)
-9. [监控运维](#监控运维)
-10. [故障排除](#故障排除)
-11. [最佳实践](#最佳实践)
-12. [FAQ](#faq)
+1. [生产环境部署](#生产环境部署)
+2. [配置管理](#配置管理)
+3. [日常使用](#日常使用)
+4. [Web管理界面](#web管理界面)
+5. [命令行工具](#命令行工具)
+6. [监控运维](#监控运维)
+7. [故障排除](#故障排除)
+8. [性能调优](#性能调优)
+9. [安全加固](#安全加固)
+10. [FAQ](#faq)
 
-## 系统概述
+## 快速导航
 
-Fail2ban分布式系统是一个基于Python开发的分布式入侵防护系统，专门设计用于保护多台服务器免受网络攻击。系统通过实时分析Nginx日志，智能检测各种攻击模式，并自动执行IP封禁操作。
+- **新用户**: 建议先阅读 [README.md](../README.md) 了解系统概述
+- **系统集成**: 参考 [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md) 进行部署
+- **增强功能**: 查看 [enhancements/README.md](../enhancements/README.md) 了解高级特性
+- **API开发**: 参考 [API_REFERENCE.md](../API_REFERENCE.md) 进行接口调用
 
-### 核心特性
+## 生产环境部署
 
-- **分布式架构**: 支持多节点部署，可横向扩展
-- **实时监控**: 实时分析日志文件，快速响应攻击
-- **智能检测**: 支持多种攻击模式检测，包括SQL注入、XSS、路径遍历等
-- **动态封禁**: 基于风险评分的智能封禁策略
-- **Web界面**: 直观的Web管理界面，支持实时监控和操作
-- **多渠道通知**: 支持邮件、钉钉、微信、Slack等通知方式
-- **高可用性**: 支持Redis和MongoDB集群，确保系统稳定性
+> 💡 基础安装请参考 [README.md](../README.md#快速开始)，系统集成请参考 [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md)
 
-### 适用场景
+### 生产环境规划
 
-- 多台Web服务器的集中防护
-- 三网环境（电信、联通、移动）的分布式部署
-- 海外服务器的统一管理
-- 大流量网站的安全防护
-- 企业级安全运营中心(SOC)
+#### 系统架构图
 
-## 快速开始
+![系统架构图](architecture.svg)
 
-### 系统要求
+系统采用分布式架构设计，支持三网环境和海外环境的多节点部署。架构图展示了中央控制节点、增强功能层、代理节点、执行节点以及Web管理界面之间的关系和数据流向。
 
-- **操作系统**: CentOS 7/8, Ubuntu 18.04/20.04/22.04
-- **Python**: 3.7+
-- **内存**: 最低2GB，推荐4GB+
-- **磁盘**: 最低10GB可用空间
-- **网络**: 节点间需要网络互通
+#### 架构设计原则
 
-### 一键安装
+- **高可用性**: 关键组件部署多实例，避免单点故障
+- **负载均衡**: 合理分配处理负载，提升系统性能
+- **安全隔离**: 网络分段，最小权限原则
+- **监控告警**: 完善的监控体系和告警机制
+- **备份恢复**: 定期备份，快速恢复能力
+
+#### 推荐部署架构
+
+```
+生产环境 (推荐配置)
+├── 负载均衡层
+│   ├── HAProxy/Nginx (2台)
+│   └── VIP: 192.168.1.100
+├── 应用层
+│   ├── 中央控制节点 (2台主备)
+│   │   ├── 主节点: 192.168.1.10
+│   │   └── 备节点: 192.168.1.11
+│   ├── Web界面节点 (2台)
+│   │   ├── Web-1: 192.168.1.12
+│   │   └── Web-2: 192.168.1.13
+│   └── 代理节点 (按需扩展)
+├── 数据层
+│   ├── Redis集群 (3主3从)
+│   └── MongoDB副本集 (3节点)
+└── 执行层
+    └── 执行节点 (分布式部署)
+```
+
+#### 硬件配置建议
+
+| 环境类型 | 中央节点 | Web节点 | 数据库 | 代理节点 | 执行节点 |
+|----------|----------|---------|--------|----------|----------|
+| 小型环境 | 4核8GB | 2核4GB | 4核8GB | 2核2GB | 1核2GB |
+| 中型环境 | 8核16GB | 4核8GB | 8核16GB | 2核4GB | 2核4GB |
+| 大型环境 | 16核32GB | 8核16GB | 16核32GB | 4核8GB | 4核8GB |
+
+### 生产环境部署步骤
+
+#### 1. 环境准备清单
+
+**系统要求检查**
 
 ```bash
-# 下载安装脚本
-wget https://github.com/your-repo/fail2ban-distributed/releases/latest/download/install.sh
+# 检查系统版本
+cat /etc/os-release
 
-# 赋予执行权限
-chmod +x install.sh
+# 检查Python版本 (需要3.8+)
+python3 --version
 
-# 运行安装脚本
-sudo ./install.sh
+# 检查网络连通性
+ping -c 3 github.com
+
+# 检查防火墙状态
+sudo ufw status  # Ubuntu
+sudo firewall-cmd --state  # CentOS
 ```
 
-### 验证安装
+**安全加固**
 
 ```bash
-# 检查服务状态
-sudo systemctl status fail2ban-central
-sudo systemctl status fail2ban-web
+# 1. 创建专用用户
+sudo useradd -r -s /bin/false -d /opt/fail2ban fail2ban
 
-# 访问Web界面
-http://your-server-ip:8080
+# 2. 配置sudo权限 (仅执行节点需要)
+echo 'fail2ban ALL=(ALL) NOPASSWD: /usr/bin/fail2ban-client' | sudo tee /etc/sudoers.d/fail2ban
+
+# 3. 设置目录权限
+sudo mkdir -p /opt/fail2ban/{bin,config,logs,data}
+sudo chown -R fail2ban:fail2ban /opt/fail2ban
+sudo chmod 750 /opt/fail2ban
 ```
 
-## 系统架构
+#### 2. 数据库集群部署
 
-### 组件说明
-
-#### 1. 中央控制节点 (Central Node)
-
-负责整个系统的协调和管理：
-
-- 接收来自代理节点的日志数据
-- 执行攻击检测和风险评估
-- 管理封禁策略和白名单
-- 向执行节点下发封禁指令
-- 提供API接口和WebSocket服务
-
-#### 2. 日志收集代理 (Agent Node)
-
-部署在需要监控的服务器上：
-
-- 实时监控Nginx日志文件
-- 解析日志并提取关键信息
-- 批量发送数据到中央控制节点
-- 支持多种日志格式
-
-#### 3. 封禁执行节点 (Executor Node)
-
-负责执行具体的封禁操作：
-
-- 接收中央节点的封禁指令
-- 调用Fail2ban执行IP封禁
-- 管理本地iptables规则
-- 报告执行状态
-
-#### 4. Web管理界面 (Web Dashboard)
-
-提供可视化管理界面：
-
-- 实时监控系统状态
-- 查看攻击统计和趋势
-- 手动管理IP封禁
-- 配置系统参数
-
-### 数据流程
-
-```
-[Nginx日志] → [代理节点] → [中央控制节点] → [执行节点] → [Fail2ban/iptables]
-                                ↓
-                          [Web界面/API]
-                                ↓
-                          [通知系统]
-```
-
-## 安装部署
-
-### 单机部署
-
-适用于小规模环境或测试环境：
+**Redis集群配置**
 
 ```bash
-# 运行安装脚本并选择单机模式
-sudo ./install.sh
-# 选择: [4] 完整部署 (所有组件)
+# 主节点配置 (192.168.1.20-22)
+sudo tee /etc/redis/redis.conf << EOF
+port 6379
+bind 0.0.0.0
+requirepass your-redis-password
+masterauth your-redis-password
+cluster-enabled yes
+cluster-config-file nodes.conf
+cluster-node-timeout 5000
+appendonly yes
+EOF
 
-# 启动所有服务
+# 启动Redis集群
+redis-cli --cluster create \
+  192.168.1.20:6379 192.168.1.21:6379 192.168.1.22:6379 \
+  192.168.1.23:6379 192.168.1.24:6379 192.168.1.25:6379 \
+  --cluster-replicas 1 -a your-redis-password
+```
+
+**MongoDB副本集配置**
+
+```bash
+# 主节点配置 (192.168.1.30-32)
+sudo tee /etc/mongod.conf << EOF
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+security:
+  authorization: enabled
+replication:
+  replSetName: "fail2ban-rs"
+EOF
+
+# 初始化副本集
+mongo --eval '
+rs.initiate({
+  _id: "fail2ban-rs",
+  members: [
+    {_id: 0, host: "192.168.1.30:27017"},
+    {_id: 1, host: "192.168.1.31:27017"},
+    {_id: 2, host: "192.168.1.32:27017"}
+  ]
+})'
+```
+
+#### 3. 负载均衡配置
+
+**HAProxy配置示例**
+
+```bash
+# /etc/haproxy/haproxy.cfg
+global
+    daemon
+    maxconn 4096
+    log stdout local0
+
+defaults
+    mode http
+    timeout connect 5000ms
+    timeout client 50000ms
+    timeout server 50000ms
+    option httplog
+
+frontend fail2ban_api
+    bind *:5000
+    default_backend central_nodes
+
+frontend fail2ban_web
+    bind *:8080
+    default_backend web_nodes
+
+backend central_nodes
+    balance roundrobin
+    option httpchk GET /api/health
+    server central1 192.168.1.10:5000 check
+    server central2 192.168.1.11:5000 check backup
+
+backend web_nodes
+    balance roundrobin
+    option httpchk GET /health
+    server web1 192.168.1.12:8080 check
+    server web2 192.168.1.13:8080 check
+```
+
+**Keepalived高可用配置**
+
+```bash
+# /etc/keepalived/keepalived.conf (主节点)
+vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass your-password
+    }
+    virtual_ipaddress {
+        192.168.1.100
+    }
+}
+```
+
+#### 4. 应用服务部署
+
+**中央控制节点部署**
+
+```bash
+# 在主控服务器(192.168.1.10-11)上执行
+
+# 1. 部署应用
+sudo python main.py --init-config --mode central
 sudo systemctl start fail2ban-central
-sudo systemctl start fail2ban-agent
-sudo systemctl start fail2ban-executor
-sudo systemctl start fail2ban-web
+sudo systemctl enable fail2ban-central
+
+# 2. 验证服务
+curl http://localhost:5000/api/health
+
+# 3. 配置主备切换
+sudo tee /etc/fail2ban/cluster.yaml << EOF
+cluster:
+  enabled: true
+  node_id: "central-01"
+  role: "primary"  # primary/secondary
+  peers:
+    - "192.168.1.11:5000"
+  election_timeout: 5000
+  heartbeat_interval: 1000
+EOF
 ```
 
-### 分布式部署
-
-#### 步骤1: 部署中央控制节点
-
-在主控服务器上：
+**Web界面节点部署**
 
 ```bash
-# 安装中央控制节点
-sudo ./install.sh
-# 选择: [1] 中央控制节点
+# 在Web服务器(192.168.1.12-13)上执行
 
-# 编辑配置文件
-sudo vim /etc/fail2ban-distributed/config.yaml
-
-# 启动服务
-sudo systemctl start fail2ban-central
+# 1. 部署Web服务
+sudo python main.py --init-config --mode web
 sudo systemctl start fail2ban-web
+sudo systemctl enable fail2ban-web
+
+# 2. 配置反向代理
+sudo tee /etc/nginx/sites-available/fail2ban << EOF
+server {
+    listen 8080;
+    server_name _;
+    
+    location / {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+    }
+    
+    location /ws {
+        proxy_pass http://127.0.0.1:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+EOF
+
+sudo ln -s /etc/nginx/sites-available/fail2ban /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
 #### 步骤2: 部署代理节点
 
-在需要监控的Web服务器上：
-
 ```bash
-# 安装代理节点
+# 在Web服务器(192.168.1.20-30)上执行
+
+# 1. 安装代理
 sudo ./install.sh
 # 选择: [2] 日志收集代理
 
-# 配置中央服务器地址
-sudo vim /etc/fail2ban-distributed/config.yaml
-# 修改 central_server.host 为中央服务器IP
-
-# 启动服务
-sudo systemctl start fail2ban-agent
-```
-
-#### 步骤3: 部署执行节点
-
-在需要执行封禁的服务器上：
-
-```bash
-# 安装执行节点
-sudo ./install.sh
-# 选择: [3] 封禁执行节点
-
-# 配置中央服务器地址
-sudo vim /etc/fail2ban-distributed/config.yaml
-
-# 启动服务
-sudo systemctl start fail2ban-executor
-```
-
-### 快速部署脚本
-
-使用提供的快速部署脚本：
-
-```bash
-# 集群部署
-./quick-deploy.sh -m cluster -c deploy-config.yaml
-
-# 单机部署
-./quick-deploy.sh -m single
-```
-
-## 配置说明
-
-### 主配置文件
-
-配置文件位置：`/etc/fail2ban-distributed/config.yaml`
-
-#### 基础配置
-
-```yaml
+# 2. 配置代理
+sudo tee /etc/fail2ban-distributed/config.yaml << EOF
 system:
-  mode: "central"  # 运行模式: central, agent, executor, all
-  log_level: "INFO"  # 日志级别
-  api_key: "your-api-key"  # API密钥
-  secret_key: "your-secret-key"  # 加密密钥
-```
+  mode: "agent"
+  log_level: "INFO"
+  api_key: "your-central-api-key"  # 与中央节点相同
 
-#### 中央控制节点配置
-
-```yaml
-central:
-  api:
-    host: "0.0.0.0"
-    port: 5000
-  
-  database:
-    redis:
-      host: "localhost"
-      port: 6379
-    mongodb:
-      host: "localhost"
-      port: 27017
-      database: "fail2ban_distributed"
-  
-  ban_policy:
-    default_ban_time: 3600  # 默认封禁时间(秒)
-    risk_threshold: 80      # 风险评分阈值
-    attack_threshold: 5     # 攻击次数阈值
-```
-
-#### 代理节点配置
-
-```yaml
 agent:
   central_server:
-    host: "central-server-ip"
+    host: "192.168.1.10"
     port: 5000
+    ssl_enabled: false
   
   log_monitor:
     log_paths:
       - "/var/log/nginx/access.log"
+      - "/var/log/nginx/error.log"
     log_format: "nginx_combined"
     check_interval: 1
+    batch_size: 100
+  
+  sender:
+    send_interval: 5
+    max_queue_size: 1000
+    compression: true
+EOF
+
+# 3. 配置日志权限
+sudo usermod -a -G adm fail2ban
+sudo chmod 644 /var/log/nginx/*.log
+
+# 4. 启动服务
+sudo systemctl start fail2ban-agent
+sudo systemctl enable fail2ban-agent
 ```
 
-#### 执行节点配置
+#### 步骤3: 部署执行节点
 
-```yaml
+```bash
+# 在防火墙服务器(192.168.1.40-50)上执行
+
+# 1. 安装执行节点
+sudo ./install.sh
+# 选择: [3] 封禁执行节点
+
+# 2. 配置Fail2ban
+sudo tee /etc/fail2ban/jail.d/distributed-ban.conf << EOF
+[distributed-ban]
+enabled = true
+filter = distributed-ban
+action = iptables-multiport[name=distributed-ban, port="http,https"]
+logpath = /var/log/fail2ban-distributed/bans.log
+maxretry = 1
+bantime = 3600
+findtime = 60
+EOF
+
+# 3. 配置执行节点
+sudo tee /etc/fail2ban-distributed/config.yaml << EOF
+system:
+  mode: "executor"
+  log_level: "INFO"
+  api_key: "your-central-api-key"  # 与中央节点相同
+
 executor:
   central_server:
-    host: "central-server-ip"
+    host: "192.168.1.10"
     port: 5000
+    ssl_enabled: false
   
   fail2ban:
     client_path: "/usr/bin/fail2ban-client"
     jail_name: "distributed-ban"
+    config_path: "/etc/fail2ban"
+EOF
+
+# 4. 启动服务
+sudo systemctl start fail2ban fail2ban-executor
+sudo systemctl enable fail2ban fail2ban-executor
 ```
 
-### 通知配置
+### 自动化部署脚本
 
-#### 邮件通知
+创建集群部署配置文件：
+
+```yaml
+# deploy-config.yaml
+cluster:
+  central:
+    host: "192.168.1.10"
+    components: ["central", "web"]
+  
+  agents:
+    - host: "192.168.1.20"
+      log_paths: ["/var/log/nginx/access.log"]
+    - host: "192.168.1.21"
+      log_paths: ["/var/log/nginx/access.log"]
+  
+  executors:
+    - host: "192.168.1.40"
+    - host: "192.168.1.41"
+
+security:
+  api_key: "auto-generate"
+  ssl_enabled: false
+
+database:
+  redis_host: "192.168.1.10"
+  mongodb_host: "192.168.1.10"
+```
+
+使用自动化脚本：
+
+```bash
+# 集群部署
+./deploy.sh --config deploy-config.yaml --mode cluster
+
+# 验证部署
+./deploy.sh --config deploy-config.yaml --verify
+
+# 单机部署
+./deploy.sh --mode single --host 192.168.1.100
+```
+
+## 配置管理
+
+> 💡 基础配置请参考 [README.md](../README.md#配置说明)，系统集成配置请参考 [INTEGRATION_GUIDE.md](../INTEGRATION_GUIDE.md#配置集成)
+
+### 配置文件管理
+
+#### 配置文件层次结构
+
+```
+配置管理体系
+├── 全局配置
+│   ├── /etc/fail2ban/config.yaml (主配置)
+│   ├── /etc/fail2ban/cluster.yaml (集群配置)
+│   └── /etc/fail2ban/security.yaml (安全配置)
+├── 环境配置
+│   ├── config.prod.yaml (生产环境)
+│   ├── config.test.yaml (测试环境)
+│   └── config.dev.yaml (开发环境)
+├── 节点配置
+│   ├── central.yaml (中央节点)
+│   ├── agent.yaml (代理节点)
+│   └── executor.yaml (执行节点)
+└── 业务配置
+    ├── rules/ (检测规则)
+    ├── notifications/ (通知模板)
+    └── policies/ (封禁策略)
+```
+
+#### 配置版本管理
+
+```bash
+# 1. 配置文件版本控制
+cd /etc/fail2ban
+git init
+git add .
+git commit -m "Initial configuration"
+
+# 2. 配置变更管理
+# 修改配置前先备份
+sudo cp config.yaml config.yaml.$(date +%Y%m%d_%H%M%S)
+
+# 3. 配置验证
+sudo python main.py --validate-config --config config.yaml
+
+# 4. 配置热重载
+sudo systemctl reload fail2ban-central
+```
+
+### 系统配置详解
+
+#### 基础系统配置
+
+```yaml
+system:
+  mode: "central"              # 运行模式: central, agent, executor, all, enhanced
+  log_level: "INFO"            # 日志级别: DEBUG, INFO, WARNING, ERROR
+  api_key: "your-api-key"      # API密钥 (32字符)
+  secret_key: "your-secret"    # 加密密钥 (32字符)
+  timezone: "Asia/Shanghai"    # 时区设置
+  max_workers: 4               # 最大工作线程数
+  debug: false                 # 调试模式
+  
+  # 进程管理
+  process:
+    pid_file: "/var/run/fail2ban-distributed.pid"
+    user: "fail2ban"
+    group: "fail2ban"
+    umask: "0022"
+```
+
+#### 中央控制节点详细配置
+
+```yaml
+central:
+  # API服务配置
+  api:
+    host: "0.0.0.0"             # 监听地址
+    port: 5000                  # 监听端口
+    ssl_enabled: false          # 启用SSL
+    ssl_cert: "/path/to/cert.pem"
+    ssl_key: "/path/to/key.pem"
+    cors_enabled: true          # 启用CORS
+    rate_limit: 100             # 请求速率限制 (每分钟)
+    timeout: 30                 # 请求超时时间
+    
+  # WebSocket配置
+  websocket:
+    host: "0.0.0.0"
+    port: 5001
+    ssl_enabled: false
+    max_connections: 100
+    heartbeat_interval: 30
+    
+  # 数据库配置
+  database:
+    redis:
+      host: "localhost"
+      port: 6379
+      password: ""
+      db: 0
+      max_connections: 50
+      connection_pool_size: 10
+      socket_timeout: 5
+      socket_connect_timeout: 5
+      retry_on_timeout: true
+      
+    mongodb:
+      host: "localhost"
+      port: 27017
+      database: "fail2ban_distributed"
+      username: "fail2ban"
+      password: "your-password"
+      auth_source: "admin"
+      max_pool_size: 50
+      min_pool_size: 5
+      max_idle_time_ms: 30000
+      server_selection_timeout_ms: 5000
+      
+  # 封禁策略
+  ban_policy:
+    default_ban_time: 3600      # 默认封禁时间(秒)
+    max_ban_time: 86400         # 最大封禁时间
+    min_ban_time: 300           # 最小封禁时间
+    risk_threshold: 80          # 风险评分阈值
+    attack_threshold: 5         # 攻击次数阈值
+    ban_time_increment: 2       # 封禁时间递增倍数
+    whitelist_enabled: true     # 启用白名单
+    auto_unban: true            # 自动解封
+    
+  # 集群配置
+  cluster:
+    enabled: false
+    node_id: "central-01"
+    discovery_method: "static"  # static, consul, etcd
+    nodes:
+      - "192.168.1.10:5000"
+      - "192.168.1.11:5000"
+```
+
+#### 代理节点详细配置
+
+```yaml
+agent:
+  # 中央服务器连接
+  central_server:
+    host: "192.168.1.10"
+    port: 5000
+    ssl_enabled: false
+    ssl_verify: true
+    timeout: 10
+    retry_interval: 5
+    max_retries: 3
+    
+  # 日志监控配置
+  log_monitor:
+    log_paths:
+      - path: "/var/log/nginx/access.log"
+        format: "nginx_combined"
+        encoding: "utf-8"
+      - path: "/var/log/apache2/access.log"
+        format: "apache_combined"
+        encoding: "utf-8"
+    
+    # 监控参数
+    check_interval: 1           # 检查间隔(秒)
+    batch_size: 100             # 批处理大小
+    max_line_length: 4096       # 最大行长度
+    buffer_size: 8192           # 缓冲区大小
+    follow_rotated: true        # 跟踪轮转日志
+    
+  # 数据发送配置
+  sender:
+    send_interval: 5            # 发送间隔(秒)
+    max_queue_size: 1000        # 最大队列大小
+    compression: true           # 启用压缩
+    compression_level: 6        # 压缩级别
+    batch_timeout: 30           # 批处理超时
+    
+  # 本地缓存
+  cache:
+    enabled: true
+    max_size: 10000             # 最大缓存条目
+    expire_time: 300            # 缓存过期时间
+```
+
+#### 执行节点详细配置
+
+```yaml
+executor:
+  # 中央服务器连接
+  central_server:
+    host: "192.168.1.10"
+    port: 5000
+    ssl_enabled: false
+    heartbeat_interval: 30
+    
+  # Fail2ban配置
+  fail2ban:
+    client_path: "/usr/bin/fail2ban-client"
+    jail_name: "distributed-ban"
+    config_path: "/etc/fail2ban"
+    socket_path: "/var/run/fail2ban/fail2ban.sock"
+    timeout: 10
+    
+  # 执行配置
+  execution:
+    max_concurrent: 10          # 最大并发执行数
+    timeout: 30                 # 执行超时时间
+    retry_count: 3              # 重试次数
+    retry_delay: 5              # 重试延迟
+    
+  # 本地防火墙
+  firewall:
+    type: "iptables"            # iptables, firewalld, ufw
+    chain: "INPUT"
+    target: "DROP"
+    interface: "eth0"
+```
+
+#### Web界面配置
+
+```yaml
+web:
+  # 基础配置
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  ssl_enabled: false
+  ssl_cert: "/path/to/cert.pem"
+  ssl_key: "/path/to/key.pem"
+  
+  # 认证配置
+  auth:
+    enabled: true
+    session_timeout: 3600       # 会话超时(秒)
+    max_login_attempts: 5       # 最大登录尝试次数
+    lockout_duration: 300       # 锁定时间(秒)
+    
+    # 用户配置
+    users:
+      admin:
+        password_hash: "$2b$12$..."
+        role: "admin"
+        permissions: ["read", "write", "admin"]
+      operator:
+        password_hash: "$2b$12$..."
+        role: "operator"
+        permissions: ["read", "write"]
+  
+  # 界面配置
+  ui:
+    theme: "dark"               # light, dark
+    language: "zh-CN"           # zh-CN, en-US
+    refresh_interval: 30        # 自动刷新间隔(秒)
+    max_log_lines: 1000         # 最大日志显示行数
+    chart_data_points: 100      # 图表数据点数
+    
+  # 功能配置
+  features:
+    real_time_updates: true     # 实时更新
+    export_enabled: true        # 导出功能
+    bulk_operations: true       # 批量操作
+    advanced_filters: true      # 高级过滤
+```
+
+### 通知配置详解
 
 ```yaml
 notifications:
+  # 全局配置
+  global:
+    enabled: true
+    rate_limit: 10              # 每分钟最大通知数
+    retry_count: 3              # 重试次数
+    retry_delay: 5              # 重试延迟(秒)
+    
+  # 邮件通知
   email:
     enabled: true
     smtp_server: "smtp.example.com"
@@ -286,33 +700,77 @@ notifications:
     from_email: "fail2ban@example.com"
     to_emails:
       - "admin@example.com"
+      - "security@example.com"
     use_tls: true
-```
-
-#### 钉钉通知
-
-```yaml
-notifications:
+    use_ssl: false
+    timeout: 30
+    
+    # 邮件模板
+    templates:
+      attack_detected: "templates/attack_email.html"
+      ip_banned: "templates/ban_email.html"
+      system_alert: "templates/alert_email.html"
+  
+  # 钉钉通知
   dingtalk:
     enabled: true
     webhook_url: "https://oapi.dingtalk.com/robot/send?access_token=your-token"
     secret: "your-secret"
-```
-
-#### 微信通知
-
-```yaml
-notifications:
+    at_all: false
+    at_mobiles: ["13800138000"]
+    
+  # 微信通知
   wechat:
     enabled: true
     webhook_url: "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=your-key"
+    mentioned_list: ["@all"]
+    
+  # Slack通知
+  slack:
+    enabled: false
+    webhook_url: "https://hooks.slack.com/services/..."
+    channel: "#security"
+    username: "Fail2ban"
+    icon_emoji: ":shield:"
+    
+  # 企业微信
+  wecom:
+    enabled: false
+    corp_id: "your-corp-id"
+    corp_secret: "your-corp-secret"
+    agent_id: "your-agent-id"
+    to_user: "@all"
+    
+  # 通知规则
+  rules:
+    attack_detected:
+      enabled: true
+      channels: ["email", "dingtalk"]
+      severity: "medium"
+      throttle: 60              # 节流时间(秒)
+      
+    ip_banned:
+      enabled: true
+      channels: ["dingtalk"]
+      severity: "high"
+      throttle: 30
+      
+    system_error:
+      enabled: true
+      channels: ["email", "slack"]
+      severity: "critical"
+      throttle: 0
 ```
 
-### 检测规则配置
+### 检测规则详细配置
 
 ```yaml
 detection:
+  # 攻击模式检测
   patterns:
+    enabled: true
+    
+    # 启用的检测类型
     enabled_types:
       - "sql_injection"
       - "xss"
@@ -321,16 +779,101 @@ detection:
       - "file_inclusion"
       - "scanner"
       - "brute_force"
-  
-  frequency:
-    high_frequency:
-      window: 60      # 时间窗口(秒)
-      threshold: 100  # 请求阈值
+      - "bot_detection"
+      - "ddos_detection"
     
+    # SQL注入检测
+    sql_injection:
+      enabled: true
+      patterns:
+        - "union.*select"
+        - "drop.*table"
+        - "insert.*into"
+        - "update.*set"
+        - "delete.*from"
+      case_sensitive: false
+      score: 90
+      
+    # XSS检测
+    xss:
+      enabled: true
+      patterns:
+        - "<script"
+        - "javascript:"
+        - "onload="
+        - "onerror="
+      score: 85
+      
+    # 路径遍历检测
+    path_traversal:
+      enabled: true
+      patterns:
+        - "\.\./"
+        - "\\.\\.\\" 
+        - "/etc/passwd"
+        - "/proc/"
+      score: 80
+  
+  # 频率检测
+  frequency:
+    enabled: true
+    
+    # 高频请求检测
+    high_frequency:
+      enabled: true
+      window: 60                # 时间窗口(秒)
+      threshold: 100            # 请求阈值
+      score: 70
+      
+    # 404错误检测
     error_404:
+      enabled: true
       window: 300
       threshold: 20
-      rate_threshold: 50  # 错误率阈值(%)
+      rate_threshold: 50        # 错误率阈值(%)
+      score: 60
+      
+    # 爆破检测
+    brute_force:
+      enabled: true
+      window: 300
+      threshold: 10
+      paths:
+        - "/admin"
+        - "/login"
+        - "/wp-admin"
+      score: 95
+  
+  # 地理位置检测
+  geolocation:
+    enabled: true
+    blocked_countries: ["CN", "RU", "KP"]
+    allowed_countries: ["US", "CA", "GB"]
+    score: 50
+    
+  # User-Agent检测
+  user_agent:
+    enabled: true
+    blocked_patterns:
+      - "bot"
+      - "crawler"
+      - "scanner"
+    suspicious_patterns:
+      - "curl"
+      - "wget"
+    score: 40
+    
+  # 风险评分
+  scoring:
+    enabled: true
+    algorithm: "weighted"       # weighted, neural_network
+    weights:
+      pattern_match: 0.4
+      frequency: 0.3
+      geolocation: 0.2
+      user_agent: 0.1
+    threshold: 80               # 封禁阈值
+    decay_factor: 0.9           # 分数衰减因子
 ```
 
 ## 使用指南
